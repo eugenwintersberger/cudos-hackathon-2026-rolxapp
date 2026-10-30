@@ -13,7 +13,7 @@ for path, path_item in spec.get("paths", {}).items():
 
             # 1. Ensure operationId exists
             if "operationId" not in op:
-                clean_path = path.strip("/").replace("/", "_").replace("-", "_").replace("{", "").replace("}", "")
+                clean_path = path.strip("/").replace("/", "_").replace("-", "_").replace("{", "").replace("}", "").replace("api_v1_", "")
                 op["operationId"] = f"{method}_{clean_path}"
 
             # 2. Flatten requestBody to a single media type

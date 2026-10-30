@@ -4,6 +4,8 @@
 //! ([`DeviceFlowClient`]) yields a Google ID token, which the Rolx server
 //! exchanges for its own bearer token ([`RolxClient::sign_in`]).
 
+pub mod api;
+
 use std::{
     fmt,
     sync::atomic::{AtomicBool, Ordering},
