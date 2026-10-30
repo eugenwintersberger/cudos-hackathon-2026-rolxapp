@@ -1,0 +1,19 @@
+[package]
+name = "device_flow_cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "rolxapp"
+path = "src/main.rs"
+
+[dependencies]
+anyhow             = "1"
+clap               = { version = "4", features = ["derive", "env"] }
+device_flow        = { path = "../device_flow" }
+tokio              = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[features]
+default = []
+uncensored_logs = ["device_flow/uncensored_logs"]
