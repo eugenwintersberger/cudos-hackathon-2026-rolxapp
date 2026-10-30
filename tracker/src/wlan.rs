@@ -68,7 +68,7 @@ fn network_block(ssid: &str, passphrase: &str) -> Result<String, Error> {
     }
     // Both values are written as hex, so no input can break out of the block.
     Ok(format!(
-        "{BEGIN}\nnetwork={{\n\tssid={}\n\tpsk={}\n\tkey_mgmt=WPA-PSK\n}}\n{END}\n",
+        "{BEGIN}\nnetwork={{\n\tssid={}\n\tscan_ssid=1\n\tpsk={}\n\tkey_mgmt=WPA-PSK\n}}\n{END}\n",
         hex(ssid.as_bytes()),
         psk(ssid, passphrase),
     ))
