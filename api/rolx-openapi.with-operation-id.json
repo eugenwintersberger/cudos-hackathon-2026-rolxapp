@@ -1,0 +1,2557 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "RolXServer",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/Activity": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "parameters": [
+          {
+            "name": "unlessEndedBeforeDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Activity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Activity"
+      }
+    },
+    "/api/v1/Activity/suitable/{userId}/{date}": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Activity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Activity_suitable_userId_date"
+      }
+    },
+    "/api/v1/Activity/{id}": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Activity"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Activity_id"
+      }
+    },
+    "/api/v1/ApiKey": {
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.ApiKeys.Domain.Model.ApiKey"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.ApiKeys.Domain.Model.ApiKey"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_ApiKey"
+      },
+      "get": {
+        "tags": [
+          "ApiKey"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.ApiKeys.Domain.Model.ApiKey"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_ApiKey"
+      }
+    },
+    "/api/v1/ApiKey/{id}": {
+      "get": {
+        "tags": [
+          "ApiKey"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.ApiKeys.Domain.Model.ApiKey"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_ApiKey_id"
+      },
+      "put": {
+        "tags": [
+          "ApiKey"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.ApiKeys.Domain.Model.ApiKey"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "put_api_v1_ApiKey_id"
+      },
+      "delete": {
+        "tags": [
+          "ApiKey"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "delete_api_v1_ApiKey_id"
+      }
+    },
+    "/api/v1/ApiKey/{id}/rotate": {
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.ApiKeys.Domain.Model.ApiKey"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_ApiKey_id_rotate"
+      }
+    },
+    "/api/v1/Balance/{date}": {
+      "get": {
+        "tags": [
+          "Balance"
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.Balance"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Balance_date"
+      }
+    },
+    "/api/v1/Billability": {
+      "get": {
+        "tags": [
+          "Billability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Projects.DataAccess.Billability"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Billability"
+      }
+    },
+    "/api/v1/edit-lock": {
+      "get": {
+        "tags": [
+          "EditLock"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.EditLock"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_edit_lock"
+      },
+      "put": {
+        "tags": [
+          "EditLock"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.EditLock"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "put_api_v1_edit_lock"
+      }
+    },
+    "/api/v1/Export": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "begin",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subprojectId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Common.Util.DateRange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "get_api_v1_Export"
+      }
+    },
+    "/api/v1/Export/subprojects": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "get_api_v1_Export_subprojects"
+      }
+    },
+    "/api/v1/activity/favourite": {
+      "get": {
+        "tags": [
+          "FavouriteActivity"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Activity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_activity_favourite"
+      },
+      "put": {
+        "tags": [
+          "FavouriteActivity"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Activity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "put_api_v1_activity_favourite"
+      },
+      "delete": {
+        "tags": [
+          "FavouriteActivity"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Activity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "delete_api_v1_activity_favourite"
+      }
+    },
+    "/api/v1/Report": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "parameters": [
+          {
+            "name": "subprojectId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "reportRangeType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RolXServer.Reports.Domain.Model.ReportRangeType"
+            }
+          },
+          {
+            "name": "customStart",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customEnd",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Reports.WebApi.Resource.Report"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Report"
+      }
+    },
+    "/api/v1/Report/rangeTypes": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Reports.WebApi.Resource.ReportRangeType"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Report_rangeTypes"
+      }
+    },
+    "/api/v1/rolx-chat-export": {
+      "get": {
+        "tags": [
+          "RolXChatExport"
+        ],
+        "parameters": [
+          {
+            "name": "begin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "subprojectId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Reports.Domain.Model.RolXChatExportEntry"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_rolx_chat_export"
+      }
+    },
+    "/api/v1/SignIn/info": {
+      "get": {
+        "tags": [
+          "SignIn"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Auth.Domain.Model.Info"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_SignIn_info"
+      }
+    },
+    "/api/v1/SignIn": {
+      "post": {
+        "tags": [
+          "SignIn"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Auth.Domain.Model.SignInData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Auth.WebApi.Resource.Approval"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_SignIn"
+      }
+    },
+    "/api/v1/SignIn/extend": {
+      "get": {
+        "tags": [
+          "SignIn"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Auth.WebApi.Resource.Approval"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_SignIn_extend"
+      }
+    },
+    "/api/v1/Subproject": {
+      "get": {
+        "tags": [
+          "Subproject"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.SubprojectShallow"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Subproject"
+      },
+      "post": {
+        "tags": [
+          "Subproject"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Subproject"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Subproject"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_Subproject"
+      }
+    },
+    "/api/v1/Subproject/{id}": {
+      "get": {
+        "tags": [
+          "Subproject"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Subproject"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_Subproject_id"
+      },
+      "put": {
+        "tags": [
+          "Subproject"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Subproject"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "put_api_v1_Subproject_id"
+      }
+    },
+    "/api/v1/User": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.User"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_User"
+      }
+    },
+    "/api/v1/User/{id}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.User"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_User_id"
+      },
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.UpdatableUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "put_api_v1_User_id"
+      }
+    },
+    "/api/v1/User/{id}/parttimesettings": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PartTimeSetting"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PartTimeSetting"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_User_id_parttimesettings"
+      }
+    },
+    "/api/v1/User/{id}/targetbillabilitysettings": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.TargetBillabilitySetting"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.TargetBillabilitySetting"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_User_id_targetbillabilitysettings"
+      }
+    },
+    "/api/v1/User/{id}/positionSettings/{date}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PositionSetting"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_User_id_positionSettings_date"
+      }
+    },
+    "/api/v1/user-report/{userId}/month/{month}": {
+      "get": {
+        "tags": [
+          "UserReport"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Reports.WebApi.Resource.UserMonthReport"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_user_report_userId_month_month"
+      }
+    },
+    "/api/v1/user-report/all/month/{month}": {
+      "get": {
+        "tags": [
+          "UserReport"
+        ],
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Reports.WebApi.Resource.UserMonthReport"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_user_report_all_month_month"
+      }
+    },
+    "/api/v1/WorkEntry/{id}": {
+      "get": {
+        "tags": [
+          "WorkEntry"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.WorkEntry"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_WorkEntry_id"
+      }
+    },
+    "/api/v1/WorkEntry": {
+      "get": {
+        "tags": [
+          "WorkEntry"
+        ],
+        "parameters": [
+          {
+            "name": "begin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "subprojectId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "activityId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "billabilityId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.WorkEntry"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_WorkEntry"
+      }
+    },
+    "/api/v1/WorkRecord/{userId}/range/{beginDate}..{endDate}": {
+      "get": {
+        "tags": [
+          "WorkRecord"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "beginDate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.Record"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_WorkRecord_userId_range_beginDate..endDate"
+      }
+    },
+    "/api/v1/WorkRecord/{userId}/{date}": {
+      "put": {
+        "tags": [
+          "WorkRecord"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.Record"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "put_api_v1_WorkRecord_userId_date"
+      }
+    },
+    "/api/v1/WorkRecord/{userId}/bulkupdate": {
+      "put": {
+        "tags": [
+          "WorkRecord"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.BulkRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "put_api_v1_WorkRecord_userId_bulkupdate"
+      }
+    },
+    "/api/v1/YearInfo/{year}": {
+      "get": {
+        "tags": [
+          "YearInfo"
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.YearInfo"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_YearInfo_year"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RolXServer.ApiKeys.Domain.Model.ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "plainTextKey": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Auth.Domain.Model.Info": {
+        "type": "object",
+        "properties": {
+          "googleClientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Auth.Domain.Model.SignInData": {
+        "type": "object",
+        "properties": {
+          "googleIdToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Auth.WebApi.Resource.Approval": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.User"
+          },
+          "bearerToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "expires": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Common.Util.DateRange": {
+        "type": "object",
+        "properties": {
+          "begin": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Projects.DataAccess.Billability": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBillable": {
+            "type": "boolean"
+          },
+          "sortingWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inactive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Projects.PaidLeaveType": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "RolXServer.Projects.WebApi.Resource.Activity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "billabilityId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "billabilityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBillable": {
+            "type": "boolean"
+          },
+          "isOverBudget": {
+            "type": "boolean"
+          },
+          "isOverPlanned": {
+            "type": "boolean"
+          },
+          "budget": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "planned": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "actual": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "budgetConsumedFraction": {
+            "type": "number",
+            "format": "double"
+          },
+          "plannedConsumedFraction": {
+            "type": "number",
+            "format": "double"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "subprojectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "allSubprojectNames": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Projects.WebApi.Resource.Subproject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fullNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "managerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "deputyManagerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isArchitectRequired": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "architectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "managerId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "deputyManagerId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "architectId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "budget": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "planned": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "actual": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "budgetConsumedFraction": {
+            "type": "number",
+            "format": "double"
+          },
+          "plannedConsumedFraction": {
+            "type": "number",
+            "format": "double"
+          },
+          "isOverBudget": {
+            "type": "boolean"
+          },
+          "isOverPlanned": {
+            "type": "boolean"
+          },
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Projects.WebApi.Resource.Activity"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Projects.WebApi.Resource.SubprojectShallow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fullNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "managerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "deputyManagerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isArchitectRequired": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "architectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isClosed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.DayType": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "RolXServer.Records.WebApi.Resource.Balance": {
+        "type": "object",
+        "properties": {
+          "byDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "overtime": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "vacationAvailable": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "vacationAvailableDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "vacationPlanned": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "vacationPlannedDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.BulkRecord": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.Record"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.EditLock": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.Holiday": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.MonthlyWorkTime": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "nullable": true
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.Record": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dayType": {
+            "$ref": "#/components/schemas/RolXServer.Records.DayType"
+          },
+          "dayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "nominalWorkTime": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paidLeaveType": {
+            "$ref": "#/components/schemas/RolXServer.Projects.PaidLeaveType"
+          },
+          "paidLeaveReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.RecordEntry"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.RecordEntry": {
+        "type": "object",
+        "properties": {
+          "activityId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fullActivityNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "begin": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "pause": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.WorkEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "date": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "beginHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "pauseHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "subprojectId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subprojectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subprojectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "activityId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activityNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "billabilityId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "billabilityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBillable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Records.WebApi.Resource.YearInfo": {
+        "type": "object",
+        "properties": {
+          "holidays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.Holiday"
+            },
+            "nullable": true
+          },
+          "monthlyWorkTimes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Records.WebApi.Resource.MonthlyWorkTime"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Reports.Domain.Model.ReportRangeType": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "RolXServer.Reports.Domain.Model.RolXChatExportEntry": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subprojectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activityNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "subprojectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "activityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "billabilityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBillable": {
+            "type": "boolean"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Reports.Domain.Model.WorkItem": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "format": "date-span"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Reports.Domain.Model.WorkItemGroup": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Reports.Domain.Model.WorkItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Reports.WebApi.Resource.Report": {
+        "type": "object",
+        "properties": {
+          "subproject": {
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportEntries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Reports.WebApi.Resource.ReportEntry"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Reports.WebApi.Resource.ReportEntry": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "subprojectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subprojectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "activityNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "billabilityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Reports.WebApi.Resource.ReportRangeType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasCustomStart": {
+            "type": "boolean"
+          },
+          "hasCustomEnd": {
+            "type": "boolean"
+          },
+          "hasCustomEndMonth": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Reports.WebApi.Resource.UserMonthReport": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.User"
+          },
+          "partTimeSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PartTimeSetting"
+            },
+            "nullable": true
+          },
+          "balanceCorrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.BalanceCorrection"
+            },
+            "nullable": true
+          },
+          "vacationDaysSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.VacationDaysSetting"
+            },
+            "nullable": true
+          },
+          "targetBillabilitySettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.TargetBillabilitySetting"
+            },
+            "nullable": true
+          },
+          "positionSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PositionSetting"
+            },
+            "nullable": true
+          },
+          "overtime": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "overtimeDelta": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "vacation": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "vacationDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "vacationDelta": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "vacationDeltaDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "billableTime": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "nonBillableTime": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "leaveTime": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "workItemGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Reports.Domain.Model.WorkItemGroup"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Users.Position": {
+        "enum": [
+          0,
+          10,
+          50,
+          100,
+          1000
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "RolXServer.Users.Role": {
+        "enum": [
+          1,
+          2,
+          100,
+          1000
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "RolXServer.Users.WebApi.Resource.BalanceCorrection": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "nullable": true
+          },
+          "overtime": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "vacation": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Users.WebApi.Resource.PartTimeSetting": {
+        "required": [
+          "factor",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "factor": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Users.WebApi.Resource.PositionSetting": {
+        "required": [
+          "position",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "position": {
+            "$ref": "#/components/schemas/RolXServer.Users.Position"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Users.WebApi.Resource.TargetBillabilitySetting": {
+        "required": [
+          "factor",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "factor": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Users.WebApi.Resource.UpdatableUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RolXServer.Users.Role"
+          },
+          "entryDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "leavingDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "partTimeSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PartTimeSetting"
+            },
+            "nullable": true
+          },
+          "vacationDaysSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.VacationDaysSetting"
+            },
+            "nullable": true
+          },
+          "balanceCorrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.BalanceCorrection"
+            },
+            "nullable": true
+          },
+          "targetBillabilitySettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.TargetBillabilitySetting"
+            },
+            "nullable": true
+          },
+          "positionSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PositionSetting"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Users.WebApi.Resource.User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "$ref": "#/components/schemas/RolXServer.Users.Role"
+          },
+          "entryDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "leavingDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "isConfirmed": {
+            "type": "boolean"
+          },
+          "partTimeSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PartTimeSetting"
+            },
+            "nullable": true
+          },
+          "balanceCorrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.BalanceCorrection"
+            },
+            "nullable": true
+          },
+          "vacationDaysSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.VacationDaysSetting"
+            },
+            "nullable": true
+          },
+          "targetBillabilitySettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.TargetBillabilitySetting"
+            },
+            "nullable": true
+          },
+          "positionSettings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolXServer.Users.WebApi.Resource.PositionSetting"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RolXServer.Users.WebApi.Resource.VacationDaysSetting": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "vacationDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "description": "Enter the API key below",
+        "name": "X-API-KEY",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKey": []
+    }
+  ]
+}
