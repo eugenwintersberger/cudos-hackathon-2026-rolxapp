@@ -34,7 +34,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Activity"
+        "operationId": "get_Activity"
       }
     },
     "/api/v1/Activity/suitable/{userId}/{date}": {
@@ -76,7 +76,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Activity_suitable_userId_date"
+        "operationId": "get_Activity_suitable_userId_date"
       }
     },
     "/api/v1/Activity/{id}": {
@@ -107,7 +107,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Activity_id"
+        "operationId": "get_Activity_id"
       }
     },
     "/api/v1/ApiKey": {
@@ -136,7 +136,7 @@
             }
           }
         },
-        "operationId": "post_api_v1_ApiKey"
+        "operationId": "post_ApiKey"
       },
       "get": {
         "tags": [
@@ -157,7 +157,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_ApiKey"
+        "operationId": "get_ApiKey"
       }
     },
     "/api/v1/ApiKey/{id}": {
@@ -188,7 +188,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_ApiKey_id"
+        "operationId": "get_ApiKey_id"
       },
       "put": {
         "tags": [
@@ -219,7 +219,7 @@
             "description": "OK"
           }
         },
-        "operationId": "put_api_v1_ApiKey_id"
+        "operationId": "put_ApiKey_id"
       },
       "delete": {
         "tags": [
@@ -241,7 +241,7 @@
             "description": "OK"
           }
         },
-        "operationId": "delete_api_v1_ApiKey_id"
+        "operationId": "delete_ApiKey_id"
       }
     },
     "/api/v1/ApiKey/{id}/rotate": {
@@ -272,7 +272,7 @@
             }
           }
         },
-        "operationId": "post_api_v1_ApiKey_id_rotate"
+        "operationId": "post_ApiKey_id_rotate"
       }
     },
     "/api/v1/Balance/{date}": {
@@ -302,7 +302,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Balance_date"
+        "operationId": "get_Balance_date"
       }
     },
     "/api/v1/Billability": {
@@ -325,7 +325,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Billability"
+        "operationId": "get_Billability"
       }
     },
     "/api/v1/edit-lock": {
@@ -345,7 +345,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_edit_lock"
+        "operationId": "get_edit_lock"
       },
       "put": {
         "tags": [
@@ -365,7 +365,7 @@
             "description": "OK"
           }
         },
-        "operationId": "put_api_v1_edit_lock"
+        "operationId": "put_edit_lock"
       }
     },
     "/api/v1/Export": {
@@ -418,7 +418,7 @@
             "description": "OK"
           }
         },
-        "operationId": "get_api_v1_Export"
+        "operationId": "get_Export"
       }
     },
     "/api/v1/Export/subprojects": {
@@ -431,7 +431,7 @@
             "description": "OK"
           }
         },
-        "operationId": "get_api_v1_Export_subprojects"
+        "operationId": "get_Export_subprojects"
       }
     },
     "/api/v1/activity/favourite": {
@@ -454,7 +454,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_activity_favourite"
+        "operationId": "get_activity_favourite"
       },
       "put": {
         "tags": [
@@ -474,7 +474,7 @@
             "description": "OK"
           }
         },
-        "operationId": "put_api_v1_activity_favourite"
+        "operationId": "put_activity_favourite"
       },
       "delete": {
         "tags": [
@@ -494,7 +494,7 @@
             "description": "OK"
           }
         },
-        "operationId": "delete_api_v1_activity_favourite"
+        "operationId": "delete_activity_favourite"
       }
     },
     "/api/v1/Report": {
@@ -545,7 +545,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Report"
+        "operationId": "get_Report"
       }
     },
     "/api/v1/Report/rangeTypes": {
@@ -568,7 +568,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Report_rangeTypes"
+        "operationId": "get_Report_rangeTypes"
       }
     },
     "/api/v1/rolx-chat-export": {
@@ -619,7 +619,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_rolx_chat_export"
+        "operationId": "get_rolx_chat_export"
       }
     },
     "/api/v1/SignIn/info": {
@@ -639,7 +639,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_SignIn_info"
+        "operationId": "get_SignIn_info"
       }
     },
     "/api/v1/SignIn": {
@@ -668,7 +668,7 @@
             }
           }
         },
-        "operationId": "post_api_v1_SignIn"
+        "operationId": "post_SignIn"
       }
     },
     "/api/v1/SignIn/extend": {
@@ -688,7 +688,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_SignIn_extend"
+        "operationId": "get_SignIn_extend"
       }
     },
     "/api/v1/Subproject": {
@@ -711,7 +711,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Subproject"
+        "operationId": "get_Subproject"
       },
       "post": {
         "tags": [
@@ -738,7 +738,7 @@
             }
           }
         },
-        "operationId": "post_api_v1_Subproject"
+        "operationId": "post_Subproject"
       }
     },
     "/api/v1/Subproject/{id}": {
@@ -769,7 +769,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_Subproject_id"
+        "operationId": "get_Subproject_id"
       },
       "put": {
         "tags": [
@@ -800,7 +800,7 @@
             "description": "OK"
           }
         },
-        "operationId": "put_api_v1_Subproject_id"
+        "operationId": "put_Subproject_id"
       }
     },
     "/api/v1/User": {
@@ -823,7 +823,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_User"
+        "operationId": "get_User"
       }
     },
     "/api/v1/User/{id}": {
@@ -854,7 +854,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_User_id"
+        "operationId": "get_User_id"
       },
       "put": {
         "tags": [
@@ -885,7 +885,7 @@
             "description": "OK"
           }
         },
-        "operationId": "put_api_v1_User_id"
+        "operationId": "put_User_id"
       }
     },
     "/api/v1/User/{id}/parttimesettings": {
@@ -925,7 +925,7 @@
             }
           }
         },
-        "operationId": "post_api_v1_User_id_parttimesettings"
+        "operationId": "post_User_id_parttimesettings"
       }
     },
     "/api/v1/User/{id}/targetbillabilitysettings": {
@@ -965,7 +965,7 @@
             }
           }
         },
-        "operationId": "post_api_v1_User_id_targetbillabilitysettings"
+        "operationId": "post_User_id_targetbillabilitysettings"
       }
     },
     "/api/v1/User/{id}/positionSettings/{date}": {
@@ -1007,7 +1007,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_User_id_positionSettings_date"
+        "operationId": "get_User_id_positionSettings_date"
       }
     },
     "/api/v1/user-report/{userId}/month/{month}": {
@@ -1046,7 +1046,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_user_report_userId_month_month"
+        "operationId": "get_user_report_userId_month_month"
       }
     },
     "/api/v1/user-report/all/month/{month}": {
@@ -1079,7 +1079,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_user_report_all_month_month"
+        "operationId": "get_user_report_all_month_month"
       }
     },
     "/api/v1/WorkEntry/{id}": {
@@ -1110,7 +1110,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_WorkEntry_id"
+        "operationId": "get_WorkEntry_id"
       }
     },
     "/api/v1/WorkEntry": {
@@ -1185,7 +1185,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_WorkEntry"
+        "operationId": "get_WorkEntry"
       }
     },
     "/api/v1/WorkRecord/{userId}/range/{beginDate}..{endDate}": {
@@ -1235,7 +1235,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_WorkRecord_userId_range_beginDate..endDate"
+        "operationId": "get_WorkRecord_userId_range_beginDate..endDate"
       }
     },
     "/api/v1/WorkRecord/{userId}/{date}": {
@@ -1276,7 +1276,7 @@
             "description": "OK"
           }
         },
-        "operationId": "put_api_v1_WorkRecord_userId_date"
+        "operationId": "put_WorkRecord_userId_date"
       }
     },
     "/api/v1/WorkRecord/{userId}/bulkupdate": {
@@ -1309,7 +1309,7 @@
             "description": "OK"
           }
         },
-        "operationId": "put_api_v1_WorkRecord_userId_bulkupdate"
+        "operationId": "put_WorkRecord_userId_bulkupdate"
       }
     },
     "/api/v1/YearInfo/{year}": {
@@ -1340,7 +1340,7 @@
             }
           }
         },
-        "operationId": "get_api_v1_YearInfo_year"
+        "operationId": "get_YearInfo_year"
       }
     }
   },
