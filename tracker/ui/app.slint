@@ -19,6 +19,13 @@ export component AppWindow inherits Window {
     in property <string> user-code;
     in property <image> qr-code;
     in property <string> auth-error;
+    // Whether the WLAN can be configured (boards with wpa_supplicant).
+    in property <bool> wlan-available;
+    // "idle", "working", "done" or "failed"
+    in-out property <string> wlan-state: "idle";
+    in property <string> wlan-message;
+    // Store SSID and passphrase and restart the network.
+    callback apply-wlan(string, string);
     // Start the device flow for the given user name (e-mail address).
     callback start-login(string);
     callback cancel-login();
@@ -261,15 +268,60 @@ export component AppWindow inherits Window {
                         font-size: 20px;
                         color: white;
                     }
-                    Text {
+                    if !root.wlan-available: Text {
                         text: "No settings available yet.";
                         color: #c0c0c0;
+                    }
+                    if root.wlan-available: VerticalLayout {
+                        spacing: 8px;
+                        Text {
+                            text: "WLAN";
+                            color: white;
+                            font-weight: 700;
+                        }
+                        ssid := LineEdit {
+                            placeholder-text: "Network name (SSID)";
+                            enabled: root.wlan-state != "working";
+                            edited => { root.wlan-state = "idle"; }
+                        }
+                        passphrase := LineEdit {
+                            input-type: InputType.password;
+                            placeholder-text: "Passphrase";
+                            enabled: root.wlan-state != "working";
+                            edited => { root.wlan-state = "idle"; }
+                            accepted => { root.apply-wlan(ssid.text, self.text); }
+                        }
+                        if root.wlan-state == "working": Text {
+                            text: "Updating the network ...";
+                            color: #c0c0c0;
+                        }
+                        if root.wlan-state == "done": Text {
+                            text: "Network configuration updated.";
+                            color: #7ee787;
+                        }
+                        if root.wlan-state == "failed": Text {
+                            text: root.wlan-message;
+                            color: #ff6b6b;
+                            wrap: word-wrap;
+                        }
+                        HorizontalLayout {
+                            alignment: end;
+                            Button {
+                                text: "Apply";
+                                primary: true;
+                                enabled: ssid.text != "" && passphrase.text != "" && root.wlan-state != "working";
+                                clicked => { root.apply-wlan(ssid.text, passphrase.text); }
+                            }
+                        }
                     }
                     HorizontalLayout {
                         alignment: end;
                         Button {
                             text: "Close";
-                            clicked => { root.dialog = "none"; }
+                            clicked => {
+                                root.wlan-state = "idle";
+                                root.dialog = "none";
+                            }
                         }
                     }
                 }

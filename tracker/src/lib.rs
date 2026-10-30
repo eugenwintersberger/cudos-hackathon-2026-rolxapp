@@ -7,6 +7,7 @@ pub mod config;
 pub mod connectivity;
 pub mod oidc;
 pub mod rolx;
+pub mod wlan;
 
 use std::{
     cell::RefCell,
@@ -61,6 +62,9 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     window.set_login_configured(config.login().is_some());
     setup_login(&window, config.login());
     watch_connection(&window, config.server_url.clone());
+    if cfg!(feature = "linuxkms") {
+        setup_wlan(&window, &config);
+    }
     window.on_verify_admin_password(move |password| config.verify_admin_password(&password));
     window.run()?;
     Ok(())
@@ -82,6 +86,35 @@ fn watch_connection(window: &AppWindow, server_url: Option<String>) {
                 return;
             }
             thread::sleep(INTERVAL);
+        }
+    });
+}
+
+/// Connect the WLAN dialog of the window to the wpa_supplicant configuration.
+fn setup_wlan(window: &AppWindow, config: &Config) {
+    let path = std::path::PathBuf::from(config.wlan_config_path());
+    let restart = config.wlan_restart_command();
+
+    window.set_wlan_available(true);
+    window.on_apply_wlan({
+        let weak = window.as_weak();
+        move |ssid, passphrase| {
+            let Some(window) = weak.upgrade() else { return };
+            window.set_wlan_state("working".into());
+
+            let weak = weak.clone();
+            let (path, restart) = (path.clone(), restart.clone());
+            let (ssid, passphrase) = (ssid.to_string(), passphrase.to_string());
+            thread::spawn(move || {
+                let result = wlan::apply(&path, &restart, &ssid, &passphrase);
+                let _ = weak.upgrade_in_event_loop(move |w| match result {
+                    Ok(()) => w.set_wlan_state("done".into()),
+                    Err(e) => {
+                        w.set_wlan_message(e.to_string().into());
+                        w.set_wlan_state("failed".into());
+                    }
+                });
+            });
         }
     });
 }
