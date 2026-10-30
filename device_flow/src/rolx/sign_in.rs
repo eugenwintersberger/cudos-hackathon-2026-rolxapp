@@ -25,19 +25,15 @@ pub async fn sign_in(
     id_token: &str,
 ) -> std::result::Result<Session, SignInError> {
     let resp = {
-        let url = format!("{server_url}/api/v1/SignIn");
+        let url = format!("{}/api/v1/SignIn", server_url.trim_end_matches('/'));
         let body = serde_json::json!({ "googleIdToken": id_token });
         client.post(&url).json(&body).send().await?
     };
 
     let status = resp.status();
-    let body = serde_json::from_str::<serde_json::Value>(resp.text().await?.as_ref())?;
+    let text = resp.text().await?;
     if !status.is_success() {
-        tracing::warn!(
-            status = status.as_u16(),
-            body = redact_json(body.clone(), &["bearerToken", "user"]).to_string(),
-            "HTTP response"
-        );
+        tracing::warn!(status = status.as_u16(), "sign-in rejected");
         return Err(if status == reqwest::StatusCode::UNAUTHORIZED {
             SignInError::Unauthorized
         } else {
@@ -45,6 +41,12 @@ pub async fn sign_in(
         });
     }
 
+    let body = serde_json::from_str::<serde_json::Value>(&text)?;
+    tracing::debug!(
+        status = status.as_u16(),
+        body = redact_json(body.clone(), &["bearerToken", "user"]).to_string(),
+        "HTTP response"
+    );
     Ok(serde_json::from_value::<ApprovalResponse>(body)?.into())
 }
 
@@ -68,7 +70,7 @@ pub async fn extend(
     server_url: &str,
     bearer_token: &BearerToken,
 ) -> std::result::Result<Session, SignInExtensionError> {
-    let url = format!("{server_url}/api/v1/SignIn/extend");
+    let url = format!("{}/api/v1/SignIn/extend", server_url.trim_end_matches('/'));
     tracing::debug!(method = "GET", url, "HTTP request");
 
     let resp = client
@@ -77,12 +79,7 @@ pub async fn extend(
         .send()
         .await?;
     let status = resp.status();
-    let body = serde_json::from_str::<serde_json::Value>(&resp.text().await?)?;
-    tracing::debug!(
-        status = status.as_u16(),
-        body = redact_json(body.clone(), &["bearerToken", "googleIdToken"]).to_string(),
-        "HTTP response"
-    );
+    let text = resp.text().await?;
 
     if status == reqwest::StatusCode::UNAUTHORIZED {
         return Err(SignInExtensionError::SessionExpired);
@@ -91,6 +88,12 @@ pub async fn extend(
         return Err(SignInExtensionError::Rejected(status.as_u16()));
     }
 
+    let body = serde_json::from_str::<serde_json::Value>(&text)?;
+    tracing::debug!(
+        status = status.as_u16(),
+        body = redact_json(body.clone(), &["bearerToken", "user"]).to_string(),
+        "HTTP response"
+    );
     Ok(serde_json::from_value::<ApprovalResponse>(body)?.into())
 }
 

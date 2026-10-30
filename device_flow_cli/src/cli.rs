@@ -9,13 +9,16 @@ pub enum LoginFlow {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "rolxapp", about = "RolX time tracking CLI")]
+#[command(
+    name = "rolxapp",
+    about = "Test executable for the device_flow library"
+)]
 pub struct Cli {
     /// Override the server URL from config
     #[arg(long, global = true)]
     pub server: Option<String>,
 
-    /// Increase logging verbosity (-v for debug, -vv for trace; can also be controlled via RUST_LOG)
+    /// Increase logging verbosity (-v for info, -vv for debug; can also be controlled via RUST_LOG)
     #[arg(long, short = 'v', global = true, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
@@ -35,11 +38,6 @@ pub enum Command {
     Logout,
     /// Print current user from stored session
     Whoami,
-    /// Show work entries for a day (default: today)
-    Records {
-        /// Date in ISO format (yyyy-MM-dd)
-        date: Option<String>,
-    },
     /// Inspect the config file
     Config {
         #[command(subcommand)]

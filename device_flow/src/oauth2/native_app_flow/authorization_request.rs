@@ -84,25 +84,28 @@ fn build_query(query_params: &[(&str, &str)]) -> String {
 }
 
 /// Opens the default browser to request the user's authorization.
-/// If the browser could not be opened, calls the `manual_action` with the authorization request URL.
-/// Consumes the TCP listener and returns a TCP stream listening on the `redirect_uri`.
-pub async fn open_in_browser_or(
-    redirect_listener: TcpListener,
-    auth_request_url: &str,
-    manual_auth_action: impl FnOnce(&str),
-) -> Result<TcpStream, Error> {
+/// Returns `false` if the browser could not be opened; the user must then open the URL manually.
+pub fn open_in_browser(auth_request_url: &str) -> bool {
     tracing::debug!(
         method = "GET",
         url = auth_request_url,
         "request user authorization"
     );
     match open::that(auth_request_url) {
-        Ok(()) => tracing::info!("Opened browser for user authorization…"),
+        Ok(()) => {
+            tracing::info!("Opened browser for user authorization…");
+            true
+        }
         Err(e) => {
             tracing::warn!(error = %e, "Opening browser failed; open URL manually");
-            manual_auth_action(auth_request_url);
+            false
         }
     }
+}
+
+/// Waits for the browser's redirect. Consumes the TCP listener and returns the TCP stream
+/// of the connection to the `redirect_uri`.
+pub async fn accept_redirect(redirect_listener: TcpListener) -> Result<TcpStream, Error> {
     let (redirect_stream, _) = redirect_listener.accept().await?;
     Ok(redirect_stream)
 }

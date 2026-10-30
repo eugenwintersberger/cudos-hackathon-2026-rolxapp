@@ -6,8 +6,8 @@ use sha2::{Digest, Sha256};
 /// Generates a PKCE (Proof Key for Code Exchange, RFC 7636).
 ///
 /// Consists of:
-/// - Code challenge: Random `N` bytes, base64url (RFC 4648) encoded
-/// - Code verifier:  SHA-256 hashed and base64url encoded code challenge
+/// - Code verifier:  Random `N` bytes, base64url (RFC 4648) encoded
+/// - Code challenge: SHA-256 hashed and base64url encoded code verifier
 pub fn generate_s256<const N: usize>(rng: &mut impl CryptoRng) -> (CodeVerifier, CodeChallenge) {
     let verifier = {
         let mut bytes = [0u8; N];

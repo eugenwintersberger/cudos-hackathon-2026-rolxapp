@@ -1,7 +1,7 @@
-use crate::session::Session;
+use crate::error::Result;
+use crate::session::SessionStore;
 
-pub fn run() -> anyhow::Result<()> {
-    Session::delete()?;
-    println!("Logged out.");
-    Ok(())
+/// Deletes the stored session. Succeeds if there is none. Does not revoke it at Rolx.
+pub fn logout(store: &impl SessionStore) -> Result<()> {
+    store.delete()
 }

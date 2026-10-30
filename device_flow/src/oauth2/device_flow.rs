@@ -20,38 +20,87 @@ pub enum Error {
     DeviceAuthorization(#[from] auth::Error),
 
     #[error("access token exchange failed: {0}")]
-    TokenExchange(#[from] token::Error),
+    TokenExchange(token::Error),
+
+    #[error("access denied")]
+    AccessDenied,
+
+    #[error("device authorization expired")]
+    Expired,
 }
 
-pub async fn run(
+impl From<token::Error> for Error {
+    fn from(e: token::Error) -> Self {
+        match e {
+            token::Error::AccessDenied => Error::AccessDenied,
+            token::Error::Expired => Error::Expired,
+            other => Error::TokenExchange(other),
+        }
+    }
+}
+
+/// What the user must do to authorize the device. Deliberately without the device code, a secret.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeviceCodePrompt {
+    /// URL the user visits to enter the code.
+    pub verification_uri: String,
+    /// URL with the code pre-filled, if the server offers it. May skip manual entry.
+    pub verification_uri_complete: Option<String>,
+    /// Code the user enters at the verification URI.
+    pub user_code: String,
+    /// How long the code remains valid.
+    pub expires_in: Duration,
+}
+
+/// A started device authorization: the user can act now, polling has not begun.
+pub struct Started {
+    pub prompt: DeviceCodePrompt,
+    device_code: String,
+    interval: Duration,
+}
+
+impl From<auth::DeviceCodeResponse> for Started {
+    fn from(resp: auth::DeviceCodeResponse) -> Self {
+        Started {
+            prompt: DeviceCodePrompt {
+                verification_uri: resp.verification_uri,
+                verification_uri_complete: resp.verification_uri_complete,
+                user_code: resp.user_code,
+                expires_in: Duration::from_secs(resp.expires_in),
+            },
+            device_code: resp.device_code,
+            interval: Duration::from_secs(resp.interval.unwrap_or(5)),
+        }
+    }
+}
+
+/// Requests a device code. Does not print and does not poll.
+pub async fn start(
     http_client: &reqwest::Client,
     cfg: &Cfg,
     scope: &str,
+) -> Result<Started, Error> {
+    Ok(auth::request_device_code(http_client, cfg, scope)
+        .await?
+        .into())
+}
+
+/// Polls until the user authorized the device, access was denied or the code expired.
+pub async fn poll(
+    http_client: &reqwest::Client,
+    cfg: &Cfg,
+    started: &Started,
 ) -> Result<TokenResponse, Error> {
-    let device_resp = auth::request_device_code(http_client, cfg, scope).await?;
-
-    let verification_uri = device_resp
-        .verification_uri_complete
-        .as_ref()
-        .unwrap_or(&device_resp.verification_uri);
-
-    println!(
-        "To authorize this application, visit:\n  {}",
-        verification_uri
-    );
-    println!("Then enter the following code: {}\n", device_resp.user_code);
-
-    let resp = token::poll_for_token(
+    Ok(token::poll_for_token(
         http_client,
         cfg.token_endpoint.as_str(),
         cfg.client_id.as_str(),
         cfg.client_secret.as_deref(),
-        device_resp.device_code.as_str(),
-        Duration::from_secs(device_resp.expires_in),
-        Duration::from_secs(device_resp.interval.unwrap_or(5)),
+        started.device_code.as_str(),
+        started.prompt.expires_in,
+        started.interval,
     )
-    .await?;
-    Ok(resp)
+    .await?)
 }
 
 fn log_safe_form(params: &[(&str, &str)], sensitive_keys: &[&str]) -> String {
@@ -244,15 +293,21 @@ mod token {
         #[error("JSON error: {0}")]
         Json(#[from] serde_json::Error),
 
-        #[error("responded error: {0}")]
-        Response(ErrorResponse),
-
         #[error("responded invalid error '{0}': {1}")]
         InvalidResponse(String, ErrorResponse),
 
         #[error("device authorization expired")]
         Expired,
+
+        #[error("access denied")]
+        AccessDenied,
+
+        #[error("server kept failing, last HTTP status: {0}")]
+        UnexpectedStatus(reqwest::StatusCode),
     }
+
+    /// Consecutive unusable responses (server errors, non-OAuth error bodies) tolerated while polling.
+    const MAX_CONSECUTIVE_FAILURES: u32 = 3;
 
     #[derive(Debug, Deserialize)]
     pub struct ErrorResponse {
@@ -290,6 +345,7 @@ mod token {
             super::log_safe_form(&body, &["client_id", "device_code", "client_secret"]);
 
         let result = timeout(expires_in, async {
+            let mut failures = 0u32;
             loop {
                 tracing::debug!(method = "POST", url = %token_endpoint, "HTTP request");
                 tracing::debug!(
@@ -308,24 +364,41 @@ mod token {
 
                 if status.is_success() {
                     return Ok(serde_json::from_str(&text)?);
-                } else if status.is_client_error() {
-                    let parsed: ErrorResponse = serde_json::from_str(&text)?;
-                    match parsed.error.as_str() {
-                        "authorization_pending" => {}
-                        "slow_down" => {
-                            // RFC 8628 §3.5: The authorization request is still pending and polling
-                            // should continue, but the interval MUST be increased by 5 seconds for
-                            // this and all subsequent requests.
-                            interval += Duration::from_secs(5);
+                }
+
+                // A usable OAuth error body is only expected for client errors.
+                let parsed = if status.is_client_error() {
+                    serde_json::from_str::<ErrorResponse>(&text).ok()
+                } else {
+                    None
+                };
+                match parsed {
+                    Some(parsed) => {
+                        failures = 0;
+                        match parsed.error.as_str() {
+                            "authorization_pending" => {}
+                            "slow_down" => {
+                                // RFC 8628 §3.5: The authorization request is still pending and
+                                // polling should continue, but the interval MUST be increased by
+                                // 5 seconds for this and all subsequent requests.
+                                interval += Duration::from_secs(5);
+                            }
+                            "access_denied" => return Err(Error::AccessDenied),
+                            "expired_token" => return Err(Error::Expired),
+                            other => return Err(Error::InvalidResponse(other.into(), parsed)),
                         }
-                        "access_denied" => {
-                            return Err(Error::Response(parsed));
-                        }
-                        "expired_token" => {
-                            return Err(Error::Expired);
-                        }
-                        other => {
-                            return Err(Error::InvalidResponse(other.into(), parsed));
+                    }
+                    None => {
+                        // Server errors (5xx) and unparsable bodies are often transient: retry,
+                        // but give up if the server keeps failing.
+                        failures += 1;
+                        tracing::warn!(
+                            status = status.as_u16(),
+                            failures,
+                            "unexpected token endpoint response while polling"
+                        );
+                        if failures >= MAX_CONSECUTIVE_FAILURES {
+                            return Err(Error::UnexpectedStatus(status));
                         }
                     }
                 }
@@ -335,7 +408,10 @@ mod token {
         })
         .await;
 
-        result.unwrap_or(Err(Error::Expired))
+        match result {
+            Ok(result) => result,
+            Err(_elapsed) => Err(Error::Expired),
+        }
     }
 
     // TODO: check and describe, client_secret is not mentioned in RFC 8628, however, Google OAuth seems to use it
@@ -355,3 +431,7 @@ mod token {
         body
     }
 }
+
+#[cfg(test)]
+#[path = "device_flow.tests.rs"]
+mod tests;
