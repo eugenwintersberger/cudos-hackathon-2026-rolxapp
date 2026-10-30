@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["device_flow", "api", "tracker"]
+members = ["device_flow", "device_flow_cli", "api", "tracker"]
 
 [workspace.package]
 version = "0.1.0"
