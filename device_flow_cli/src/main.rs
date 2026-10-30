@@ -1,9 +1,10 @@
 mod cli;
 mod logging;
+mod prompt;
 
 use clap::Parser;
 use cli::{Cli, Command, ConfigCommand, LoginFlow};
-use device_flow::{AppConfig, AuthFlow};
+use device_flow::AppConfig;
 
 #[tokio::main]
 async fn main() {
@@ -19,12 +20,21 @@ async fn run() -> anyhow::Result<()> {
 
     match cli.command {
         Command::Login { flow } => {
-            let flow = match flow {
-                Some(LoginFlow::NativeApp) | None => AuthFlow::NativeApp,
-                Some(LoginFlow::Device) => AuthFlow::Device,
-            };
             let config = AppConfig::load()?.with_server_override(cli.server);
-            let session = device_flow::login(&config, flow).await?;
+            let session = match flow {
+                Some(LoginFlow::NativeApp) | None => {
+                    let pending = device_flow::login_browser(&config).await?;
+                    if let Some(url) = pending.manual_open_url() {
+                        println!("{}", prompt::format_manual_open(url));
+                    }
+                    pending.finish().await?
+                }
+                Some(LoginFlow::Device) => {
+                    let pending = device_flow::login_code(&config).await?;
+                    println!("{}", prompt::format_device_prompt(pending.prompt()));
+                    pending.finish().await?
+                }
+            };
             println!(
                 "Logged in as {} {} <{}>",
                 session.user_first_name, session.user_last_name, session.user_email
