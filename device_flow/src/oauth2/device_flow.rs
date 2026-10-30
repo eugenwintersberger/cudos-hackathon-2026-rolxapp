@@ -23,36 +23,73 @@ pub enum Error {
     TokenExchange(#[from] token::Error),
 }
 
-pub async fn run(
+/// What the user must do to authorize the device. Deliberately without the device code, a secret.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeviceCodePrompt {
+    /// URL the user visits to enter the code.
+    pub verification_uri: String,
+    /// URL with the code pre-filled, if the server offers it. May skip manual entry.
+    pub verification_uri_complete: Option<String>,
+    /// Code the user enters at the verification URI.
+    pub user_code: String,
+    /// How long the code remains valid.
+    pub expires_in: Duration,
+}
+
+/// A started device authorization: the user can act now, polling has not begun.
+pub struct Started {
+    pub prompt: DeviceCodePrompt,
+    device_code: String,
+    interval: Duration,
+}
+
+impl From<auth::DeviceCodeResponse> for Started {
+    fn from(resp: auth::DeviceCodeResponse) -> Self {
+        Started {
+            prompt: DeviceCodePrompt {
+                verification_uri: resp.verification_uri,
+                verification_uri_complete: resp.verification_uri_complete,
+                user_code: resp.user_code,
+                expires_in: Duration::from_secs(resp.expires_in),
+            },
+            device_code: resp.device_code,
+            interval: Duration::from_secs(resp.interval.unwrap_or(5)),
+        }
+    }
+}
+
+/// Requests a device code. Does not print and does not poll.
+pub async fn start(
     http_client: &reqwest::Client,
     cfg: &Cfg,
     scope: &str,
+) -> Result<Started, Error> {
+    Ok(auth::request_device_code(http_client, cfg, scope)
+        .await?
+        .into())
+}
+
+/// Polls until the user authorized the device, access was denied or the code expired.
+pub async fn poll(
+    http_client: &reqwest::Client,
+    cfg: &Cfg,
+    started: &Started,
 ) -> Result<TokenResponse, Error> {
-    let device_resp = auth::request_device_code(http_client, cfg, scope).await?;
-
-    let verification_uri = device_resp
-        .verification_uri_complete
-        .as_ref()
-        .unwrap_or(&device_resp.verification_uri);
-
-    println!(
-        "To authorize this application, visit:\n  {}",
-        verification_uri
-    );
-    println!("Then enter the following code: {}\n", device_resp.user_code);
-
-    let resp = token::poll_for_token(
+    Ok(token::poll_for_token(
         http_client,
         cfg.token_endpoint.as_str(),
         cfg.client_id.as_str(),
         cfg.client_secret.as_deref(),
-        device_resp.device_code.as_str(),
-        Duration::from_secs(device_resp.expires_in),
-        Duration::from_secs(device_resp.interval.unwrap_or(5)),
+        started.device_code.as_str(),
+        started.prompt.expires_in,
+        started.interval,
     )
-    .await?;
-    Ok(resp)
+    .await?)
 }
+
+#[cfg(test)]
+#[path = "device_flow.tests.rs"]
+mod tests;
 
 fn log_safe_form(params: &[(&str, &str)], sensitive_keys: &[&str]) -> String {
     params

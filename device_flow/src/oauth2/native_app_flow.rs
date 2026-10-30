@@ -39,12 +39,20 @@ pub enum Error {
     ErrorPage(std::io::Error),
 }
 
-pub async fn run(
-    http_client: &reqwest::Client,
-    rng: &mut impl CryptoRng,
-    cfg: &Cfg,
-    scope: &str,
-) -> Result<Response, Error> {
+/// A started authorization: the browser was opened (or must be opened manually),
+/// the local redirect listener is bound. Dropping it closes the listener.
+pub struct Started {
+    /// Set only if opening the browser failed: the URL the user has to open manually.
+    pub manual_open_url: Option<String>,
+    redirect_uri: String,
+    redirect_listener: tokio::net::TcpListener,
+    state: String,
+    code_verifier: crate::oauth2::pkce::CodeVerifier,
+}
+
+/// Creates the authorization request and tries to open the browser. Does not print and
+/// does not wait for the redirect.
+pub async fn start(rng: &mut impl CryptoRng, cfg: &Cfg, scope: &str) -> Result<Started, Error> {
     let req = authorization_request::create_authorization_request(
         rng,
         &cfg.authorization_endpoint,
@@ -54,19 +62,36 @@ pub async fn run(
     )
     .await?;
 
-    let mut redirect_stream = authorization_request::open_in_browser_or(
-        req.redirect_listener,
-        &req.auth_request_url,
-        |auth_request_url| {
-            println!(
-                "Opening browser failed!\n\nOpen this URL in your browser:\n  {auth_request_url}"
-            )
-        },
-    )
-    .await?;
+    let manual_open_url = (!authorization_request::open_in_browser(&req.auth_request_url))
+        .then_some(req.auth_request_url);
+
+    Ok(Started {
+        manual_open_url,
+        redirect_uri: req.redirect_uri,
+        redirect_listener: req.redirect_listener,
+        state: req.state,
+        code_verifier: req.code_verifier,
+    })
+}
+
+/// Waits for the redirect, exchanges the authorization code for tokens and shows the
+/// result page in the browser.
+pub async fn finish(
+    http_client: &reqwest::Client,
+    cfg: &Cfg,
+    started: Started,
+) -> Result<Response, Error> {
+    let Started {
+        redirect_uri,
+        redirect_listener,
+        state,
+        code_verifier,
+        ..
+    } = started;
+    let mut redirect_stream = authorization_request::accept_redirect(redirect_listener).await?;
 
     let token_result: Result<Response, Error> = (async move |redirect_stream| {
-        let auth_code = authorization_request::retrieve_auth_code(redirect_stream, &req.state)
+        let auth_code = authorization_request::retrieve_auth_code(redirect_stream, &state)
             .await
             .map_err(Into::<authorization_request::Error>::into)?;
         token_request::request_access_token(
@@ -74,8 +99,8 @@ pub async fn run(
             &cfg.token_endpoint,
             &cfg.client_id,
             cfg.client_secret.as_deref(),
-            &req.redirect_uri,
-            req.code_verifier,
+            &redirect_uri,
+            code_verifier,
             &auth_code,
         )
         .await

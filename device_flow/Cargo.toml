@@ -22,3 +22,7 @@ urlencoding      = "2"
 [features]
 default = []
 uncensored_logs = []
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }
+

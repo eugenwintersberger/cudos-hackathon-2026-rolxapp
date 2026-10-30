@@ -1,6 +1,6 @@
 use crate::config::AppConfig;
 use crate::error::{Error, Result};
-use crate::oauth2::device_flow;
+use crate::oauth2::device_flow::{self, DeviceCodePrompt};
 use crate::oauth2::native_app_flow;
 use crate::rolx::sign_in;
 use crate::session::Session;
@@ -11,68 +11,25 @@ use crate::session::Session;
 const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_DEVICE_AUTH_URL: &str = "https://oauth2.googleapis.com/device/code";
+const SCOPE: &str = "openid email profile";
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum AuthFlow {
-    /// Local redirect server with PKCE.
-    #[default]
-    NativeApp,
-    /// Device authorization flow (headless/SSH).
-    Device,
-}
-
-/// Signs in to Rolx and stores the resulting session.
-///
-/// Returns the new session. It contains the bearer token: do not log or print it.
-#[tracing::instrument(name = "login", skip_all)]
-pub async fn login(app_cfg: &AppConfig, flow: AuthFlow) -> Result<Session> {
-    tracing::info!(
-        url = app_cfg.server_url,
-        oauth_flow = ?flow,
-        "Logging in to"
-    );
-    let http = reqwest::Client::builder()
+fn http_client() -> Result<reqwest::Client> {
+    Ok(reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .https_only(true)
         .tls_version_min(reqwest::tls::Version::TLS_1_2)
-        .build()?;
+        .build()?)
+}
 
-    let session = Session::load().ok();
-    let id_token = match flow {
-        AuthFlow::NativeApp => {
-            let credentials = app_cfg
-                .google_desktop_client
-                .as_ref()
-                .ok_or(Error::MissingClientConfig("google_desktop_client"))?;
-            let cfg = native_app_flow::Cfg {
-                authorization_endpoint: GOOGLE_AUTH_URL.into(),
-                token_endpoint: GOOGLE_TOKEN_URL.into(),
-                client_id: credentials.id.clone(),
-                client_secret: Some(credentials.secret.clone()),
-                user_email: session.map(|s| s.user_email),
-            };
-            let resp = native_app_flow::run(&http, &mut rand::rng(), &cfg, "openid email profile")
-                .await
-                .inspect_err(|e| tracing::error!(error = %e, "native app flow failed"))?;
-            resp.id_token.ok_or(Error::MissingIdToken("access token"))?
-        }
-        AuthFlow::Device => {
-            let credentials = app_cfg
-                .google_device_client
-                .as_ref()
-                .ok_or(Error::MissingClientConfig("google_device_client"))?;
-            let cfg = device_flow::Cfg {
-                device_authorization_endpoint: GOOGLE_DEVICE_AUTH_URL.into(),
-                token_endpoint: GOOGLE_TOKEN_URL.into(),
-                client_id: credentials.id.clone(),
-                client_secret: Some(credentials.secret.clone()),
-            };
-            let resp = device_flow::run(&http, &cfg, "openid email profile").await?;
-            resp.id_token
-                .ok_or(Error::MissingIdToken("device flow token"))?
-        }
-    };
-    let session = sign_in::sign_in(&http, &app_cfg.server_url, &id_token).await?;
+/// Exchanges the Google ID token for a Rolx session and stores it.
+async fn complete(
+    http: &reqwest::Client,
+    app_cfg: &AppConfig,
+    id_token: Option<String>,
+    token_kind: &'static str,
+) -> Result<Session> {
+    let id_token = id_token.ok_or(Error::MissingIdToken(token_kind))?;
+    let session = sign_in::sign_in(http, &app_cfg.server_url, &id_token).await?;
     session.save()?;
 
     tracing::info!(
@@ -82,3 +39,122 @@ pub async fn login(app_cfg: &AppConfig, flow: AuthFlow) -> Result<Session> {
     );
     Ok(session)
 }
+
+/// A code login in progress: show [`prompt`](Self::prompt) to the user, then call
+/// [`finish`](Self::finish). Dropping it cancels the login.
+pub struct PendingCodeLogin {
+    http: reqwest::Client,
+    app_cfg: AppConfig,
+    cfg: device_flow::Cfg,
+    started: device_flow::Started,
+}
+
+impl PendingCodeLogin {
+    /// Address to visit and code to enter. Never contains secrets.
+    pub fn prompt(&self) -> &DeviceCodePrompt {
+        &self.started.prompt
+    }
+
+    /// Waits until the user confirmed the login, then signs in to Rolx and stores the session.
+    ///
+    /// The returned session contains the bearer token: do not log or print it.
+    #[tracing::instrument(name = "login_code", skip_all)]
+    pub async fn finish(self) -> Result<Session> {
+        let resp = device_flow::poll(&self.http, &self.cfg, &self.started).await?;
+        complete(
+            &self.http,
+            &self.app_cfg,
+            resp.id_token,
+            "device flow token",
+        )
+        .await
+    }
+}
+
+/// Starts a browserless login (OAuth 2.0 device flow). Needs `google_device_client` in the config.
+#[tracing::instrument(name = "login_code", skip_all)]
+pub async fn login_code(app_cfg: &AppConfig) -> Result<PendingCodeLogin> {
+    tracing::info!(
+        url = app_cfg.server_url,
+        oauth_flow = "device",
+        "Logging in to"
+    );
+    let credentials = app_cfg
+        .google_device_client
+        .as_ref()
+        .ok_or(Error::MissingClientConfig("google_device_client"))?;
+    let cfg = device_flow::Cfg {
+        device_authorization_endpoint: GOOGLE_DEVICE_AUTH_URL.into(),
+        token_endpoint: GOOGLE_TOKEN_URL.into(),
+        client_id: credentials.id.clone(),
+        client_secret: Some(credentials.secret.clone()),
+    };
+    let http = http_client()?;
+    let started = device_flow::start(&http, &cfg, SCOPE).await?;
+    Ok(PendingCodeLogin {
+        http,
+        app_cfg: app_cfg.clone(),
+        cfg,
+        started,
+    })
+}
+
+/// A browser login in progress. Dropping it cancels the login and closes the redirect listener.
+pub struct PendingBrowserLogin {
+    http: reqwest::Client,
+    app_cfg: AppConfig,
+    cfg: native_app_flow::Cfg,
+    started: native_app_flow::Started,
+}
+
+impl PendingBrowserLogin {
+    /// `Some(url)` only if the browser could not be opened: the user must open the URL manually.
+    pub fn manual_open_url(&self) -> Option<&str> {
+        self.started.manual_open_url.as_deref()
+    }
+
+    /// Waits for the browser redirect, then signs in to Rolx and stores the session.
+    ///
+    /// The returned session contains the bearer token: do not log or print it.
+    #[tracing::instrument(name = "login_browser", skip_all)]
+    pub async fn finish(self) -> Result<Session> {
+        let resp = native_app_flow::finish(&self.http, &self.cfg, self.started)
+            .await
+            .inspect_err(|e| tracing::error!(error = %e, "native app flow failed"))?;
+        complete(&self.http, &self.app_cfg, resp.id_token, "access token").await
+    }
+}
+
+/// Starts a login in the browser (OAuth 2.0 native app flow with PKCE). Opens the browser.
+/// Needs `google_desktop_client` in the config.
+#[tracing::instrument(name = "login_browser", skip_all)]
+pub async fn login_browser(app_cfg: &AppConfig) -> Result<PendingBrowserLogin> {
+    tracing::info!(
+        url = app_cfg.server_url,
+        oauth_flow = "native-app",
+        "Logging in to"
+    );
+    let credentials = app_cfg
+        .google_desktop_client
+        .as_ref()
+        .ok_or(Error::MissingClientConfig("google_desktop_client"))?;
+    let cfg = native_app_flow::Cfg {
+        authorization_endpoint: GOOGLE_AUTH_URL.into(),
+        token_endpoint: GOOGLE_TOKEN_URL.into(),
+        client_id: credentials.id.clone(),
+        client_secret: Some(credentials.secret.clone()),
+        user_email: Session::load().ok().map(|s| s.user_email),
+    };
+    let http = http_client()?;
+    let started = native_app_flow::start(&mut rand::rng(), &cfg, SCOPE).await?;
+    Ok(PendingBrowserLogin {
+        http,
+        app_cfg: app_cfg.clone(),
+        cfg,
+        started,
+    })
+}
+
+#[cfg(test)]
+#[path = "login.tests.rs"]
+mod tests;
