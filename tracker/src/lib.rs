@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod connectivity;
+pub mod logging;
 pub mod oidc;
 pub mod rolx;
 pub mod wlan;
@@ -12,6 +13,7 @@ pub mod wlan;
 use std::{
     cell::RefCell,
     error::Error,
+    path::Path,
     rc::Rc,
     sync::{
         Arc, Mutex,
@@ -22,6 +24,7 @@ use std::{
 };
 
 use config::{Config, LoginConfig};
+use tracing::{debug, error, info, warn};
 use oidc::{DeviceAuthorization, DeviceFlowClient};
 use rolx::{Approval, RolxClient};
 
@@ -56,6 +59,14 @@ fn qr_code(text: &str) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
 /// until it is closed.
 pub fn run() -> Result<(), Box<dyn Error>> {
     let config = Config::load()?;
+    let _log = logging::init(Path::new(config.log_dir()));
+    info!(
+        version = env!("CARGO_PKG_VERSION"),
+        server_configured = config.server_url.is_some(),
+        login_configured = config.login().is_some(),
+        admin_password_configured = config.has_admin_password(),
+        "starting"
+    );
 
     let window = AppWindow::new()?;
     window.set_admin_configured(config.has_admin_password());
@@ -65,8 +76,18 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     if cfg!(feature = "linuxkms") {
         setup_wlan(&window, &config);
     }
-    window.on_verify_admin_password(move |password| config.verify_admin_password(&password));
-    window.run()?;
+    window.on_verify_admin_password(move |password| {
+        let ok = config.verify_admin_password(&password);
+        if ok {
+            info!("administrator password accepted");
+        } else {
+            warn!("administrator password rejected");
+        }
+        ok
+    });
+    let result = window.run();
+    info!("stopped");
+    result?;
     Ok(())
 }
 
@@ -79,8 +100,13 @@ fn watch_connection(window: &AppWindow, server_url: Option<String>) {
     let Some(server_url) = server_url else { return };
     let weak = window.as_weak();
     thread::spawn(move || {
+        let mut last = None;
         loop {
             let online = connectivity::is_reachable(&server_url, TIMEOUT);
+            if last != Some(online) {
+                info!(online, "connection to the server changed");
+                last = Some(online);
+            }
             // fails once the event loop has ended
             if weak.upgrade_in_event_loop(move |w| w.set_online(online)).is_err() {
                 return;
@@ -101,12 +127,17 @@ fn setup_wlan(window: &AppWindow, config: &Config) {
         move |ssid, passphrase| {
             let Some(window) = weak.upgrade() else { return };
             window.set_wlan_state("working".into());
+            info!(ssid = %ssid, "updating the WLAN configuration");
 
             let weak = weak.clone();
             let (path, restart) = (path.clone(), restart.clone());
             let (ssid, passphrase) = (ssid.to_string(), passphrase.to_string());
             thread::spawn(move || {
                 let result = wlan::apply(&path, &restart, &ssid, &passphrase);
+                match &result {
+                    Ok(()) => info!("WLAN configuration updated, network restarted"),
+                    Err(e) => error!("WLAN configuration failed: {e}"),
+                }
                 let _ = weak.upgrade_in_event_loop(move |w| match result {
                     Ok(()) => w.set_wlan_state("done".into()),
                     Err(e) => {
@@ -141,6 +172,7 @@ fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
             }
             let Some(window) = weak.upgrade() else { return };
             window.set_auth_state("starting".into());
+            info!(username = %username, "starting the device flow login");
 
             let weak = weak.clone();
             let device_flow = device_flow.clone();
@@ -163,7 +195,12 @@ fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
                 };
                 let result = sign_in(&device_flow, &rolx, &username, &cancel, show_code);
                 if cancel.load(Ordering::Relaxed) {
+                    info!("login cancelled");
                     return;
+                }
+                match &result {
+                    Ok(_) => info!("signed in"),
+                    Err(e) => warn!("sign-in failed: {e}"),
                 }
                 let _ = weak.upgrade_in_event_loop(move |w| match result {
                     Ok(approval) => {
@@ -195,6 +232,7 @@ fn sign_in(
     show_code: impl FnOnce(&DeviceAuthorization),
 ) -> Result<Approval, String> {
     let authorization = device_flow.start().map_err(|e| e.to_string())?;
+    debug!(expires_in = authorization.expires_in, "device code issued");
     show_code(&authorization);
     let id_token = device_flow
         .wait_for_id_token(&authorization, cancel)
@@ -206,6 +244,7 @@ fn sign_in(
     if !email.eq_ignore_ascii_case(username) {
         return Err(format!("signed in as {email}, but {username} was expected"));
     }
+    debug!("exchanging the ID token at the Rolx server");
     rolx.sign_in(&id_token).map_err(|e| e.to_string())
 }
 

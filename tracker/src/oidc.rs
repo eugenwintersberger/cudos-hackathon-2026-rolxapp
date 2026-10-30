@@ -12,6 +12,7 @@ use std::{
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::Deserialize;
+use tracing::debug;
 use ureq::Agent;
 
 const DEVICE_CODE_URL: &str = "https://oauth2.googleapis.com/device/code";
@@ -194,8 +195,11 @@ impl DeviceFlowClient {
                 return Ok(token);
             }
             match body.error.error.as_deref() {
-                Some("authorization_pending") => {}
-                Some("slow_down") => interval += 5,
+                Some("authorization_pending") => debug!("login not confirmed yet"),
+                Some("slow_down") => {
+                    interval += 5;
+                    debug!(interval, "asked to poll more slowly");
+                }
                 Some("access_denied") => return Err(Error::Denied),
                 Some("expired_token") => return Err(Error::Expired),
                 _ => return Err(Error::Server(body.error.message())),

@@ -29,6 +29,8 @@ pub struct Config {
     /// OIDC client used for the device flow login.
     pub device_client_id: Option<String>,
     pub device_client_secret: Option<String>,
+    /// Directory of the log files (default `/var/log`).
+    pub log_dir: Option<String>,
     /// wpa_supplicant configuration that the WLAN dialog updates
     /// (default `/etc/wpa_supplicant.conf`).
     pub wlan_config_path: Option<String>,
@@ -38,6 +40,7 @@ pub struct Config {
     pub wlan_restart_command: Option<Vec<String>>,
 }
 
+const DEFAULT_LOG_DIR: &str = "/var/log";
 const DEFAULT_WLAN_CONFIG_PATH: &str = "/etc/wpa_supplicant.conf";
 
 /// Everything needed to sign in at the Rolx service.
@@ -55,6 +58,7 @@ impl fmt::Debug for Config {
             .field("server_url", &self.server_url)
             .field("device_client_id", &self.device_client_id)
             .field("device_client_secret", &self.device_client_secret.as_ref().map(|_| "<set>"))
+            .field("log_dir", &self.log_dir)
             .field("wlan_config_path", &self.wlan_config_path)
             .field("wlan_restart_command", &self.wlan_restart_command)
             .finish()
@@ -118,6 +122,10 @@ impl Config {
             client_id: self.device_client_id.as_deref()?,
             client_secret: self.device_client_secret.as_deref()?,
         })
+    }
+
+    pub fn log_dir(&self) -> &str {
+        self.log_dir.as_deref().unwrap_or(DEFAULT_LOG_DIR)
     }
 
     pub fn wlan_config_path(&self) -> &str {
