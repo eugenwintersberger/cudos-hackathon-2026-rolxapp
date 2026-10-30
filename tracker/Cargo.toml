@@ -3,5 +3,20 @@ name = "tracker"
 version.workspace = true
 edition.workspace = true
 
+[features]
+default = ["desktop"]
+# The board build imports this crate with default-features = false and
+# enables `linuxkms`.
+desktop = ["slint/backend-winit", "slint/renderer-femtovg"]
+linuxkms = ["slint/backend-linuxkms-noseat", "slint/renderer-software"]
+
+[[bin]]
+name = "tracker"
+required-features = ["desktop"]
+
 [dependencies]
 api = { path = "../api" }
+slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2"] }
+
+[build-dependencies]
+slint-build = "1.18.1"
