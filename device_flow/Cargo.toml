@@ -1,0 +1,6 @@
+[package]
+name = "device_flow"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
