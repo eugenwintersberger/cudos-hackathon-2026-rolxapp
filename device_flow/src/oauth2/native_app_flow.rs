@@ -4,7 +4,6 @@ mod authorization_request;
 mod token_request;
 
 use rand::CryptoRng;
-use thiserror;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 

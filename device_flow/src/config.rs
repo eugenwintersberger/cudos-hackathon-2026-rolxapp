@@ -1,8 +1,6 @@
-use std::fs;
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "file-store")]
 use crate::error::{Error, Result};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -19,10 +17,17 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
+    /// Reads the config file at [`config_path`].
+    #[cfg(feature = "file-store")]
     pub fn load() -> Result<Self> {
         let path = config_path()?;
-        let text = fs::read_to_string(&path)
-            .map_err(|e| Error::Config(format!("cannot deserialize {}: {}", path.display(), e)))?;
+        let text = match std::fs::read_to_string(&path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(Error::ConfigNotFound(path));
+            }
+            Err(e) => return Err(e.into()),
+        };
         Ok(toml::from_str(&text)?)
     }
 
@@ -35,7 +40,9 @@ impl AppConfig {
     }
 }
 
-pub fn config_path() -> Result<PathBuf> {
+/// Returns the config file path `<config_dir>/rolx/config.toml`. The file need not exist.
+#[cfg(feature = "file-store")]
+pub fn config_path() -> Result<std::path::PathBuf> {
     let base = dirs::config_dir()
         .ok_or_else(|| Error::Config("cannot determine config directory".into()))?;
     Ok(base.join("rolx").join("config.toml"))
