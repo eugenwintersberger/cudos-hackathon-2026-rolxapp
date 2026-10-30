@@ -62,7 +62,12 @@ contains one (a file in `/etc` takes precedence over the user's):
 |-----------------------|----------------------------------------------------------------|
 | `admin_password_hash` | Argon2 hash of the administrator password. Without it the configuration dialog cannot be unlocked. |
 
-Unknown keys are rejected. Create the hash with:
+| `server_url`          | Base URL of the Rolx service.                                  |
+| `device_client_id`    | OIDC client id for the device flow login.                      |
+| `device_client_secret`| OIDC client secret for the device flow login. Keep the file readable only by its user (`chmod 600`). |
+
+The **Tracking** button needs the last three; without them it reports that the
+login is not configured. Unknown keys are rejected. Create the hash with:
 
 ```sh
 tracker --hash-password        # reads the password from stdin
@@ -76,3 +81,8 @@ admin_password_hash = "$argon2id$v=19$m=19456,t=2,p=1$..."
 
 The **Settings** button in the app asks for this password before it shows the
 configuration dialog.
+
+The **Tracking** button asks for the user name (e-mail address) and starts an
+OIDC device flow: the app shows a link and a code, the user confirms the login
+in any browser, and the app then signs in at the Rolx service. The account that
+confirmed the login must match the user name that was entered.

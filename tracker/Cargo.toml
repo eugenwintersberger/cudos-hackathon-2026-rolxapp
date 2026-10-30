@@ -15,8 +15,9 @@ name = "tracker"
 required-features = ["desktop"]
 
 [dependencies]
-api = { path = "../api" }
+api = { version = "0.1.0", path = "../api" }
 argon2 = "0.6.0"
+qrcode = { version = "0.14.1", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2"] }
 toml = "1.1.8"

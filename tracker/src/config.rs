@@ -18,12 +18,36 @@ use serde::Deserialize;
 const SYSTEM_DIR: &str = "/etc/rolx/tracker";
 const FILE_NAME: &str = "config.toml";
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// Argon2 PHC string (`$argon2id$...`) of the administrator password.
     /// Create one with `tracker --hash-password`.
     pub admin_password_hash: Option<String>,
+    /// Base URL of the Rolx service.
+    pub server_url: Option<String>,
+    /// OIDC client used for the device flow login.
+    pub device_client_id: Option<String>,
+    pub device_client_secret: Option<String>,
+}
+
+/// Everything needed to sign in at the Rolx service.
+pub struct LoginConfig<'a> {
+    pub server_url: &'a str,
+    pub client_id: &'a str,
+    pub client_secret: &'a str,
+}
+
+// Written by hand so that secrets never end up in logs.
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("admin_password_hash", &self.admin_password_hash.as_ref().map(|_| "<set>"))
+            .field("server_url", &self.server_url)
+            .field("device_client_id", &self.device_client_id)
+            .field("device_client_secret", &self.device_client_secret.as_ref().map(|_| "<set>"))
+            .finish()
+    }
 }
 
 #[derive(Debug)]
@@ -76,6 +100,15 @@ impl Config {
         self.admin_password_hash.is_some()
     }
 
+    /// The login settings, if all of them are configured.
+    pub fn login(&self) -> Option<LoginConfig<'_>> {
+        Some(LoginConfig {
+            server_url: self.server_url.as_deref()?,
+            client_id: self.device_client_id.as_deref()?,
+            client_secret: self.device_client_secret.as_deref()?,
+        })
+    }
+
     /// Check `password` against the configured administrator password.
     /// Returns `false` if none is configured or the stored hash is invalid.
     pub fn verify_admin_password(&self, password: &str) -> bool {
@@ -124,6 +157,18 @@ mod tests {
     fn invalid_hash_rejects() {
         let config = Config::parse("admin_password_hash = \"nonsense\"").unwrap();
         assert!(!config.verify_admin_password("nonsense"));
+    }
+
+    #[test]
+    fn login_needs_all_three_settings() {
+        let all = Config::parse(
+            "server_url = \"https://x\"\ndevice_client_id = \"i\"\ndevice_client_secret = \"s\"",
+        )
+        .unwrap();
+        assert!(all.login().is_some());
+        let partial = Config::parse("server_url = \"https://x\"").unwrap();
+        assert!(partial.login().is_none());
+        assert!(!format!("{all:?}").contains("\"s\""));
     }
 
     #[test]
