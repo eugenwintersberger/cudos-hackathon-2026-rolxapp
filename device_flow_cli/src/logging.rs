@@ -11,7 +11,12 @@ pub fn init(verbosity: u8) {
         EnvFilter::new(level)
     });
 
-    if let Err(err) = tracing_subscriber::fmt().with_env_filter(filter).try_init() {
+    // Logs go to stderr, so stdout stays clean for output like `config path`.
+    if let Err(err) = tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .try_init()
+    {
         eprintln!("failed to initialize logging: {err}");
     }
 }

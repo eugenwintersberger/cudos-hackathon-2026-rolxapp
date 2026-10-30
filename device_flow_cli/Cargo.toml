@@ -12,6 +12,7 @@ anyhow             = "1"
 clap               = { version = "4", features = ["derive", "env"] }
 device_flow        = { path = "../device_flow" }
 tokio              = { version = "1", features = ["rt-multi-thread", "macros"] }
+toml               = "1.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [features]
