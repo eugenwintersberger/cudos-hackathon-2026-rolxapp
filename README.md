@@ -67,6 +67,10 @@ contains one (a file in `/etc` takes precedence over the user's):
 | `device_client_id`    | OIDC client id for the device flow login.                      |
 | `device_client_secret`| OIDC client secret for the device flow login. Keep the file readable only by its user (`chmod 600`). |
 
+| `log_dir`             | Directory of the log files. Default `/var/log`.                |
+| `wlan_config_path`    | wpa_supplicant configuration to update. Default `/etc/wpa_supplicant.conf`. |
+| `wlan_restart_command`| Program and arguments that restart the network. Default `["/etc/init.d/S40network", "restart"]`. |
+
 The **Tracking** button needs the last three; without them it reports that the
 login is not configured. Unknown keys are rejected. Create the hash with:
 
@@ -123,3 +127,31 @@ async fn sign_in(cfg: &AppConfig, store: &impl SessionStore) -> device_flow::Res
 **Cargo features:** `file-store` and `browser-login` (both default), `uncensored_logs` (no log redaction, debug only). For a headless board use `default-features = false` and your own `SessionStore`.
 
 The `device_flow_cli` crate (binary `rolxapp`) is an integration-test tool for this library: `cargo run -p device_flow_cli -- login [native-app|device]`, `logout`, `whoami`, `config ls|path`.
+
+### WLAN (board build)
+
+With the `linuxkms` feature the configuration dialog (Settings, after entering
+the administrator password) has a WLAN section for systems whose wifi is
+managed by wpa_supplicant. After entering SSID and passphrase, **Apply**
+
+1. replaces the block between `# BEGIN rolx-tracker` and `# END rolx-tracker`
+   in the wpa_supplicant configuration with the new network (other content of
+   the file is kept; the file is created with `ctrl_interface` and
+   `update_config` if it does not exist),
+2. runs `wlan_restart_command`.
+
+The SSID and the key derived from the passphrase are stored; the passphrase
+itself is not. The app needs write access to the configuration file, which is
+only readable by its owner (mode 600), and permission to run the restart command.
+
+## Logging
+
+The app logs with [`tracing`](https://docs.rs/tracing) to
+`/var/log/rolx-tracker.log` (directory: `log_dir`). The file is rotated when
+it reaches 20 MB: `rolx-tracker.log.1` is the newest rotated file and at most
+10 files are kept, including the current one. Set the verbosity with
+`RUST_LOG` (default `info`, e.g. `RUST_LOG=tracker=debug`).
+
+Passwords, passphrases, tokens and client secrets are never logged. If the log
+directory is not writable (for example on a desktop without root), the app
+logs to stderr instead.

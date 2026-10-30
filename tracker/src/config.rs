@@ -29,7 +29,19 @@ pub struct Config {
     /// OIDC client used for the device flow login.
     pub device_client_id: Option<String>,
     pub device_client_secret: Option<String>,
+    /// Directory of the log files (default `/var/log`).
+    pub log_dir: Option<String>,
+    /// wpa_supplicant configuration that the WLAN dialog updates
+    /// (default `/etc/wpa_supplicant.conf`).
+    pub wlan_config_path: Option<String>,
+    /// Program and arguments that restart the network so that the new
+    /// configuration takes effect (default `["/etc/init.d/S40network",
+    /// "restart"]`).
+    pub wlan_restart_command: Option<Vec<String>>,
 }
+
+const DEFAULT_LOG_DIR: &str = "/var/log";
+const DEFAULT_WLAN_CONFIG_PATH: &str = "/etc/wpa_supplicant.conf";
 
 /// Everything needed to sign in at the Rolx service.
 pub struct LoginConfig<'a> {
@@ -46,6 +58,9 @@ impl fmt::Debug for Config {
             .field("server_url", &self.server_url)
             .field("device_client_id", &self.device_client_id)
             .field("device_client_secret", &self.device_client_secret.as_ref().map(|_| "<set>"))
+            .field("log_dir", &self.log_dir)
+            .field("wlan_config_path", &self.wlan_config_path)
+            .field("wlan_restart_command", &self.wlan_restart_command)
             .finish()
     }
 }
@@ -109,6 +124,20 @@ impl Config {
         })
     }
 
+    pub fn log_dir(&self) -> &str {
+        self.log_dir.as_deref().unwrap_or(DEFAULT_LOG_DIR)
+    }
+
+    pub fn wlan_config_path(&self) -> &str {
+        self.wlan_config_path.as_deref().unwrap_or(DEFAULT_WLAN_CONFIG_PATH)
+    }
+
+    pub fn wlan_restart_command(&self) -> Vec<String> {
+        self.wlan_restart_command
+            .clone()
+            .unwrap_or_else(|| vec!["/etc/init.d/S40network".into(), "restart".into()])
+    }
+
     /// Check `password` against the configured administrator password.
     /// Returns `false` if none is configured or the stored hash is invalid.
     pub fn verify_admin_password(&self, password: &str) -> bool {
@@ -169,6 +198,20 @@ mod tests {
         let partial = Config::parse("server_url = \"https://x\"").unwrap();
         assert!(partial.login().is_none());
         assert!(!format!("{all:?}").contains("\"s\""));
+    }
+
+    #[test]
+    fn wlan_settings_have_defaults() {
+        let config = Config::default();
+        assert_eq!(config.wlan_config_path(), "/etc/wpa_supplicant.conf");
+        assert_eq!(config.wlan_restart_command(), ["/etc/init.d/S40network", "restart"]);
+
+        let config = Config::parse(
+            "wlan_config_path = \"/tmp/w.conf\"\nwlan_restart_command = [\"systemctl\", \"restart\", \"wpa_supplicant\"]",
+        )
+        .unwrap();
+        assert_eq!(config.wlan_config_path(), "/tmp/w.conf");
+        assert_eq!(config.wlan_restart_command().len(), 3);
     }
 
     #[test]

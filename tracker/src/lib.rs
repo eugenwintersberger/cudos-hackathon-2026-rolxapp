@@ -4,20 +4,29 @@
 //! or `linuxkms` feature of this crate (or via `SLINT_BACKEND` at runtime).
 
 pub mod config;
+pub mod connectivity;
+pub mod logging;
+pub mod oidc;
+pub mod rolx;
+pub mod wlan;
 
 use std::{
     cell::RefCell,
     error::Error,
+    path::Path,
     rc::Rc,
     sync::{
         Arc, Mutex,
         atomic::{AtomicBool, Ordering},
     },
     thread,
+    time::Duration,
 };
 
-use api::{Approval, DeviceAuthorization, DeviceFlowClient, RolxClient};
 use config::{Config, LoginConfig};
+use tracing::{debug, error, info, warn};
+use oidc::{DeviceAuthorization, DeviceFlowClient};
+use rolx::{Approval, RolxClient};
 
 slint::include_modules!();
 
@@ -50,14 +59,95 @@ fn qr_code(text: &str) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
 /// until it is closed.
 pub fn run() -> Result<(), Box<dyn Error>> {
     let config = Config::load()?;
+    let _log = logging::init(Path::new(config.log_dir()));
+    info!(
+        version = env!("CARGO_PKG_VERSION"),
+        server_configured = config.server_url.is_some(),
+        login_configured = config.login().is_some(),
+        admin_password_configured = config.has_admin_password(),
+        "starting"
+    );
 
     let window = AppWindow::new()?;
     window.set_admin_configured(config.has_admin_password());
     window.set_login_configured(config.login().is_some());
     setup_login(&window, config.login());
-    window.on_verify_admin_password(move |password| config.verify_admin_password(&password));
-    window.run()?;
+    watch_connection(&window, config.server_url.clone());
+    if cfg!(feature = "linuxkms") {
+        setup_wlan(&window, &config);
+    }
+    window.on_verify_admin_password(move |password| {
+        let ok = config.verify_admin_password(&password);
+        if ok {
+            info!("administrator password accepted");
+        } else {
+            warn!("administrator password rejected");
+        }
+        ok
+    });
+    let result = window.run();
+    info!("stopped");
+    result?;
     Ok(())
+}
+
+/// Keep the `online` property of the window in sync with the reachability of
+/// the server. Without a configured server the app counts as offline.
+fn watch_connection(window: &AppWindow, server_url: Option<String>) {
+    const INTERVAL: Duration = Duration::from_secs(10);
+    const TIMEOUT: Duration = Duration::from_secs(3);
+
+    let Some(server_url) = server_url else { return };
+    let weak = window.as_weak();
+    thread::spawn(move || {
+        let mut last = None;
+        loop {
+            let online = connectivity::is_reachable(&server_url, TIMEOUT);
+            if last != Some(online) {
+                info!(online, "connection to the server changed");
+                last = Some(online);
+            }
+            // fails once the event loop has ended
+            if weak.upgrade_in_event_loop(move |w| w.set_online(online)).is_err() {
+                return;
+            }
+            thread::sleep(INTERVAL);
+        }
+    });
+}
+
+/// Connect the WLAN dialog of the window to the wpa_supplicant configuration.
+fn setup_wlan(window: &AppWindow, config: &Config) {
+    let path = std::path::PathBuf::from(config.wlan_config_path());
+    let restart = config.wlan_restart_command();
+
+    window.set_wlan_available(true);
+    window.on_apply_wlan({
+        let weak = window.as_weak();
+        move |ssid, passphrase| {
+            let Some(window) = weak.upgrade() else { return };
+            window.set_wlan_state("working".into());
+            info!(ssid = %ssid, "updating the WLAN configuration");
+
+            let weak = weak.clone();
+            let (path, restart) = (path.clone(), restart.clone());
+            let (ssid, passphrase) = (ssid.to_string(), passphrase.to_string());
+            thread::spawn(move || {
+                let result = wlan::apply(&path, &restart, &ssid, &passphrase);
+                match &result {
+                    Ok(()) => info!("WLAN configuration updated, network restarted"),
+                    Err(e) => error!("WLAN configuration failed: {e}"),
+                }
+                let _ = weak.upgrade_in_event_loop(move |w| match result {
+                    Ok(()) => w.set_wlan_state("done".into()),
+                    Err(e) => {
+                        w.set_wlan_message(e.to_string().into());
+                        w.set_wlan_state("failed".into());
+                    }
+                });
+            });
+        }
+    });
 }
 
 /// The session granted by the Rolx server once the user has signed in.
@@ -82,6 +172,7 @@ fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
             }
             let Some(window) = weak.upgrade() else { return };
             window.set_auth_state("starting".into());
+            info!(username = %username, "starting the device flow login");
 
             let weak = weak.clone();
             let device_flow = device_flow.clone();
@@ -104,7 +195,12 @@ fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
                 };
                 let result = sign_in(&device_flow, &rolx, &username, &cancel, show_code);
                 if cancel.load(Ordering::Relaxed) {
+                    info!("login cancelled");
                     return;
+                }
+                match &result {
+                    Ok(_) => info!("signed in"),
+                    Err(e) => warn!("sign-in failed: {e}"),
                 }
                 let _ = weak.upgrade_in_event_loop(move |w| match result {
                     Ok(approval) => {
@@ -136,6 +232,7 @@ fn sign_in(
     show_code: impl FnOnce(&DeviceAuthorization),
 ) -> Result<Approval, String> {
     let authorization = device_flow.start().map_err(|e| e.to_string())?;
+    debug!(expires_in = authorization.expires_in, "device code issued");
     show_code(&authorization);
     let id_token = device_flow
         .wait_for_id_token(&authorization, cancel)
@@ -143,10 +240,11 @@ fn sign_in(
 
     // The device flow cannot be bound to an account in advance, so make sure
     // that the person who confirmed the login is the one who was asked for.
-    let email = api::email_from_id_token(&id_token).map_err(|e| e.to_string())?;
+    let email = oidc::email_from_id_token(&id_token).map_err(|e| e.to_string())?;
     if !email.eq_ignore_ascii_case(username) {
         return Err(format!("signed in as {email}, but {username} was expected"));
     }
+    debug!("exchanging the ID token at the Rolx server");
     rolx.sign_in(&id_token).map_err(|e| e.to_string())
 }
 
