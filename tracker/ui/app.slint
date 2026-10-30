@@ -1,0 +1,268 @@
+import { Button, LineEdit } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "Rolx Tracker";
+    preferred-width: 800px;
+    preferred-height: 480px;
+
+    in property <bool> admin-configured;
+    // Returns true if the password is the administrator password.
+    callback verify-admin-password(string) -> bool;
+
+    // Whether server and OIDC client are configured.
+    in property <bool> login-configured;
+    // "idle", "starting", "waiting", "signed-in" or "failed"
+    in-out property <string> auth-state: "idle";
+    in property <string> verification-url;
+    in property <string> user-code;
+    in property <image> qr-code;
+    in property <string> auth-error;
+    // Start the device flow for the given user name (e-mail address).
+    callback start-login(string);
+    callback cancel-login();
+
+    // "none", "login", "config" or "tracking"
+    property <string> dialog: "none";
+    property <bool> login-failed: false;
+
+    function try-unlock(password: string) {
+        if (root.verify-admin-password(password)) {
+            root.dialog = "config";
+        } else {
+            root.login-failed = true;
+        }
+    }
+
+    VerticalLayout {
+        padding: 12px;
+
+        HorizontalLayout {
+            alignment: end;
+            spacing: 8px;
+            Button {
+                text: "Tracking";
+                clicked => {
+                    if (root.auth-state == "failed") {
+                        root.auth-state = "idle";
+                    }
+                    root.dialog = "tracking";
+                }
+            }
+            Button {
+                text: "Settings";
+                clicked => {
+                    root.login-failed = false;
+                    root.dialog = "login";
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 12px;
+
+            Text {
+                text: "Rolx Tracker";
+                font-size: 32px;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: "Hello, World!";
+                font-size: 20px;
+                horizontal-alignment: center;
+            }
+        }
+    }
+
+    // Modal overlay; a single window keeps this working on KMS, which has
+    // no window manager for popups.
+    if root.dialog != "none": Rectangle {
+        background: #000000a0;
+        TouchArea { }
+
+        Rectangle {
+            width: min(parent.width - 24px, 420px);
+            height: self.preferred-height;
+            background: #2b2b2b;
+            border-radius: 8px;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                if root.dialog == "login": VerticalLayout {
+                    spacing: 12px;
+                    Text {
+                        text: "Administrator password";
+                        font-size: 20px;
+                        color: white;
+                    }
+                    password := LineEdit {
+                        input-type: InputType.password;
+                        placeholder-text: "Password";
+                        enabled: root.admin-configured;
+                        init => { self.focus(); }
+                        accepted => { root.try-unlock(self.text); }
+                    }
+                    Text {
+                        visible: !root.admin-configured || root.login-failed;
+                        text: root.admin-configured ? "Wrong password" : "No administrator password configured";
+                        color: #ff6b6b;
+                    }
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: 8px;
+                        Button {
+                            text: "Cancel";
+                            clicked => { root.dialog = "none"; }
+                        }
+                        Button {
+                            text: "Unlock";
+                            primary: true;
+                            enabled: root.admin-configured;
+                            clicked => { root.try-unlock(password.text); }
+                        }
+                    }
+                }
+
+                if root.dialog == "tracking": VerticalLayout {
+                    spacing: 12px;
+                    Text {
+                        text: "Tracking";
+                        font-size: 20px;
+                        color: white;
+                    }
+
+                    if !root.login-configured: Text {
+                        text: "Server and login are not configured.";
+                        color: #ff6b6b;
+                        wrap: word-wrap;
+                    }
+
+                    if root.login-configured && (root.auth-state == "idle" || root.auth-state == "failed"): VerticalLayout {
+                        spacing: 12px;
+                        Text {
+                            text: "Sign in with your user name (e-mail address).";
+                            color: #c0c0c0;
+                            wrap: word-wrap;
+                        }
+                        user-name := LineEdit {
+                            input-type: InputType.text;
+                            placeholder-text: "name@example.org";
+                            init => { self.focus(); }
+                            accepted => { root.start-login(self.text); }
+                        }
+                        if root.auth-state == "failed": Text {
+                            text: root.auth-error;
+                            color: #ff6b6b;
+                            wrap: word-wrap;
+                        }
+                        HorizontalLayout {
+                            alignment: end;
+                            spacing: 8px;
+                            Button {
+                                text: "Cancel";
+                                clicked => { root.dialog = "none"; }
+                            }
+                            Button {
+                                text: "Sign in";
+                                primary: true;
+                                enabled: user-name.text != "";
+                                clicked => { root.start-login(user-name.text); }
+                            }
+                        }
+                    }
+
+                    if root.auth-state == "starting": Text {
+                        text: "Contacting login service ...";
+                        color: #c0c0c0;
+                    }
+
+                    if root.auth-state == "waiting": VerticalLayout {
+                        spacing: 12px;
+                        Text {
+                            text: "Scan the QR code, or open this link and enter the code:";
+                            color: #c0c0c0;
+                            wrap: word-wrap;
+                        }
+                        HorizontalLayout {
+                            spacing: 16px;
+                            Image {
+                                source: root.qr-code;
+                                width: 160px;
+                                height: 160px;
+                                image-rendering: pixelated;
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                spacing: 8px;
+                                Text {
+                                    text: root.verification-url;
+                                    color: #6cb6ff;
+                                    font-size: 16px;
+                                    wrap: word-wrap;
+                                }
+                                Text {
+                                    text: root.user-code;
+                                    color: white;
+                                    font-size: 28px;
+                                    font-weight: 700;
+                                }
+                            }
+                        }
+                        Text {
+                            text: "Waiting for confirmation ...";
+                            color: #c0c0c0;
+                        }
+                        HorizontalLayout {
+                            alignment: end;
+                            Button {
+                                text: "Cancel";
+                                clicked => {
+                                    root.cancel-login();
+                                    root.dialog = "none";
+                                }
+                            }
+                        }
+                    }
+
+                    if root.auth-state == "signed-in": VerticalLayout {
+                        spacing: 12px;
+                        Text {
+                            text: "Signed in.";
+                            color: #7ee787;
+                        }
+                        HorizontalLayout {
+                            alignment: end;
+                            Button {
+                                text: "Close";
+                                clicked => { root.dialog = "none"; }
+                            }
+                        }
+                    }
+                }
+
+                if root.dialog == "config": VerticalLayout {
+                    spacing: 12px;
+                    Text {
+                        text: "Configuration";
+                        font-size: 20px;
+                        color: white;
+                    }
+                    Text {
+                        text: "No settings available yet.";
+                        color: #c0c0c0;
+                    }
+                    HorizontalLayout {
+                        alignment: end;
+                        Button {
+                            text: "Close";
+                            clicked => { root.dialog = "none"; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
