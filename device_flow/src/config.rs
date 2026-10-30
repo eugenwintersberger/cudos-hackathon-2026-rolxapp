@@ -25,6 +25,14 @@ impl AppConfig {
             .map_err(|e| Error::Config(format!("cannot deserialize {}: {}", path.display(), e)))?;
         Ok(toml::from_str(&text)?)
     }
+
+    /// Returns the config with `server_url` replaced, if `server` is given.
+    pub fn with_server_override(mut self, server: Option<String>) -> Self {
+        if let Some(server) = server {
+            self.server_url = server;
+        }
+        self
+    }
 }
 
 pub fn config_path() -> Result<PathBuf> {

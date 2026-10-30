@@ -1,9 +1,9 @@
 use crate::config::AppConfig;
+use crate::error::{Error, Result};
 use crate::oauth2::device_flow;
 use crate::oauth2::native_app_flow;
 use crate::rolx::sign_in;
 use crate::session::Session;
-use anyhow::anyhow;
 
 // Uses Google OAuth, see:
 // - https://developers.google.com/identity/oauth2/native-app
@@ -12,14 +12,20 @@ const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_DEVICE_AUTH_URL: &str = "https://oauth2.googleapis.com/device/code";
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum AuthFlow {
+    /// Local redirect server with PKCE.
+    #[default]
     NativeApp,
+    /// Device authorization flow (headless/SSH).
     Device,
 }
 
+/// Signs in to Rolx and stores the resulting session.
+///
+/// Returns the new session. It contains the bearer token: do not log or print it.
 #[tracing::instrument(name = "login", skip_all)]
-pub async fn run(app_cfg: &AppConfig, flow: AuthFlow) -> anyhow::Result<()> {
+pub async fn login(app_cfg: &AppConfig, flow: AuthFlow) -> Result<Session> {
     tracing::info!(
         url = app_cfg.server_url,
         oauth_flow = ?flow,
@@ -34,9 +40,10 @@ pub async fn run(app_cfg: &AppConfig, flow: AuthFlow) -> anyhow::Result<()> {
     let session = Session::load().ok();
     let id_token = match flow {
         AuthFlow::NativeApp => {
-            let credentials = app_cfg.google_desktop_client.as_ref().ok_or_else(|| {
-                anyhow!("`google_desktop_client` config missing — add it to the config")
-            })?;
+            let credentials = app_cfg
+                .google_desktop_client
+                .as_ref()
+                .ok_or(Error::MissingClientConfig("google_desktop_client"))?;
             let cfg = native_app_flow::Cfg {
                 authorization_endpoint: GOOGLE_AUTH_URL.into(),
                 token_endpoint: GOOGLE_TOKEN_URL.into(),
@@ -46,17 +53,14 @@ pub async fn run(app_cfg: &AppConfig, flow: AuthFlow) -> anyhow::Result<()> {
             };
             let resp = native_app_flow::run(&http, &mut rand::rng(), &cfg, "openid email profile")
                 .await
-                .map_err(|e| {
-                    tracing::error!(error = %e, "native app flow failed");
-                    e
-                })?;
-            resp.id_token
-                .ok_or_else(|| anyhow!("id_token missing in access token response"))?
+                .inspect_err(|e| tracing::error!(error = %e, "native app flow failed"))?;
+            resp.id_token.ok_or(Error::MissingIdToken("access token"))?
         }
         AuthFlow::Device => {
-            let credentials = app_cfg.google_device_client.as_ref().ok_or_else(|| {
-                anyhow!("`google_device_client` config missing — add it the config")
-            })?;
+            let credentials = app_cfg
+                .google_device_client
+                .as_ref()
+                .ok_or(Error::MissingClientConfig("google_device_client"))?;
             let cfg = device_flow::Cfg {
                 device_authorization_endpoint: GOOGLE_DEVICE_AUTH_URL.into(),
                 token_endpoint: GOOGLE_TOKEN_URL.into(),
@@ -65,7 +69,7 @@ pub async fn run(app_cfg: &AppConfig, flow: AuthFlow) -> anyhow::Result<()> {
             };
             let resp = device_flow::run(&http, &cfg, "openid email profile").await?;
             resp.id_token
-                .ok_or_else(|| anyhow!("id_token missing in device flow token response"))?
+                .ok_or(Error::MissingIdToken("device flow token"))?
         }
     };
     let session = sign_in::sign_in(&http, &app_cfg.server_url, &id_token).await?;
@@ -76,5 +80,5 @@ pub async fn run(app_cfg: &AppConfig, flow: AuthFlow) -> anyhow::Result<()> {
         email = session.user_email,
         "Logged in as"
     );
-    Ok(())
+    Ok(session)
 }

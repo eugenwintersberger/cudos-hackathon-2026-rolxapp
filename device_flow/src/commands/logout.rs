@@ -1,7 +1,8 @@
+use crate::error::Result;
 use crate::session::Session;
 
-pub fn run() -> anyhow::Result<()> {
+/// Deletes the stored session. Succeeds if there is none.
+pub fn logout() -> Result<()> {
     Session::delete()?;
-    println!("Logged out.");
     Ok(())
 }
