@@ -5,3 +5,12 @@ members = ["device_flow", "device_flow_cli", "api", "tracker"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+
+# Small binaries for embedded Linux targets.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
