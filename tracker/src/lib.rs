@@ -3,12 +3,22 @@
 //! The embedding binary picks the Slint backend by enabling the `desktop`
 //! or `linuxkms` feature of this crate (or via `SLINT_BACKEND` at runtime).
 
+pub mod config;
+
+use std::error::Error;
+
+use config::Config;
+
 slint::include_modules!();
 
-pub use slint::PlatformError;
+/// Load the configuration, create the main window and run the event loop
+/// until it is closed.
+pub fn run() -> Result<(), Box<dyn Error>> {
+    let config = Config::load()?;
 
-/// Create the main window and run the event loop until it is closed.
-pub fn run() -> Result<(), PlatformError> {
     let window = AppWindow::new()?;
-    window.run()
+    window.set_admin_configured(config.has_admin_password());
+    window.on_verify_admin_password(move |password| config.verify_admin_password(&password));
+    window.run()?;
+    Ok(())
 }

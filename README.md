@@ -49,3 +49,30 @@ rustup target add riscv64gc-unknown-linux-gnu
 ```
 
 At runtime the backend can be forced with `SLINT_BACKEND=linuxkms-noseat`.
+
+## Configuration
+
+The tracker reads `config.toml` from the first of these directories that
+contains one (a file in `/etc` takes precedence over the user's):
+
+1. `/etc/rolx/tracker/`
+2. `$HOME/.config/rolx/tracker/`
+
+| Key                   | Description                                                    |
+|-----------------------|----------------------------------------------------------------|
+| `admin_password_hash` | Argon2 hash of the administrator password. Without it the configuration dialog cannot be unlocked. |
+
+Unknown keys are rejected. Create the hash with:
+
+```sh
+tracker --hash-password        # reads the password from stdin
+```
+
+and put the result into the file:
+
+```toml
+admin_password_hash = "$argon2id$v=19$m=19456,t=2,p=1$..."
+```
+
+The **Settings** button in the app asks for this password before it shows the
+configuration dialog.

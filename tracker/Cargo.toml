@@ -16,7 +16,10 @@ required-features = ["desktop"]
 
 [dependencies]
 api = { path = "../api" }
+argon2 = "0.6.0"
+serde = { version = "1.0.229", features = ["derive"] }
 slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2"] }
+toml = "1.1.8"
 
 [build-dependencies]
 slint-build = "1.18.1"

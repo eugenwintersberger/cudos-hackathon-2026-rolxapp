@@ -1,22 +1,129 @@
+import { Button, LineEdit } from "std-widgets.slint";
+
 export component AppWindow inherits Window {
     title: "Rolx Tracker";
     preferred-width: 800px;
     preferred-height: 480px;
 
-    VerticalLayout {
-        alignment: center;
-        spacing: 12px;
+    in property <bool> admin-configured;
+    // Returns true if the password is the administrator password.
+    callback verify-admin-password(string) -> bool;
 
-        Text {
-            text: "Rolx Tracker";
-            font-size: 32px;
-            horizontal-alignment: center;
+    // "none", "login" or "config"
+    property <string> dialog: "none";
+    property <bool> login-failed: false;
+
+    function try-unlock(password: string) {
+        if (root.verify-admin-password(password)) {
+            root.dialog = "config";
+        } else {
+            root.login-failed = true;
+        }
+    }
+
+    VerticalLayout {
+        padding: 12px;
+
+        HorizontalLayout {
+            alignment: end;
+            Button {
+                text: "Settings";
+                clicked => {
+                    root.login-failed = false;
+                    root.dialog = "login";
+                }
+            }
         }
 
-        Text {
-            text: "Hello, World!";
-            font-size: 20px;
-            horizontal-alignment: center;
+        VerticalLayout {
+            alignment: center;
+            spacing: 12px;
+
+            Text {
+                text: "Rolx Tracker";
+                font-size: 32px;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: "Hello, World!";
+                font-size: 20px;
+                horizontal-alignment: center;
+            }
+        }
+    }
+
+    // Modal overlay; a single window keeps this working on KMS, which has
+    // no window manager for popups.
+    if root.dialog != "none": Rectangle {
+        background: #000000a0;
+        TouchArea { }
+
+        Rectangle {
+            width: min(parent.width - 24px, 420px);
+            height: self.preferred-height;
+            background: #2b2b2b;
+            border-radius: 8px;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                if root.dialog == "login": VerticalLayout {
+                    spacing: 12px;
+                    Text {
+                        text: "Administrator password";
+                        font-size: 20px;
+                        color: white;
+                    }
+                    password := LineEdit {
+                        input-type: InputType.password;
+                        placeholder-text: "Password";
+                        enabled: root.admin-configured;
+                        init => { self.focus(); }
+                        accepted => { root.try-unlock(self.text); }
+                    }
+                    Text {
+                        visible: !root.admin-configured || root.login-failed;
+                        text: root.admin-configured ? "Wrong password" : "No administrator password configured";
+                        color: #ff6b6b;
+                    }
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: 8px;
+                        Button {
+                            text: "Cancel";
+                            clicked => { root.dialog = "none"; }
+                        }
+                        Button {
+                            text: "Unlock";
+                            primary: true;
+                            enabled: root.admin-configured;
+                            clicked => { root.try-unlock(password.text); }
+                        }
+                    }
+                }
+
+                if root.dialog == "config": VerticalLayout {
+                    spacing: 12px;
+                    Text {
+                        text: "Configuration";
+                        font-size: 20px;
+                        color: white;
+                    }
+                    Text {
+                        text: "No settings available yet.";
+                        color: #c0c0c0;
+                    }
+                    HorizontalLayout {
+                        alignment: end;
+                        Button {
+                            text: "Close";
+                            clicked => { root.dialog = "none"; }
+                        }
+                    }
+                }
+            }
         }
     }
 }
