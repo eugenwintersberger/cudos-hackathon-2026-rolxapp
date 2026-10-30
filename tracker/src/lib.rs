@@ -4,6 +4,9 @@
 //! or `linuxkms` feature of this crate (or via `SLINT_BACKEND` at runtime).
 
 pub mod config;
+pub mod connectivity;
+pub mod oidc;
+pub mod rolx;
 
 use std::{
     cell::RefCell,
@@ -14,10 +17,12 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
     thread,
+    time::Duration,
 };
 
-use api::{Approval, DeviceAuthorization, DeviceFlowClient, RolxClient};
 use config::{Config, LoginConfig};
+use oidc::{DeviceAuthorization, DeviceFlowClient};
+use rolx::{Approval, RolxClient};
 
 slint::include_modules!();
 
@@ -55,9 +60,30 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     window.set_admin_configured(config.has_admin_password());
     window.set_login_configured(config.login().is_some());
     setup_login(&window, config.login());
+    watch_connection(&window, config.server_url.clone());
     window.on_verify_admin_password(move |password| config.verify_admin_password(&password));
     window.run()?;
     Ok(())
+}
+
+/// Keep the `online` property of the window in sync with the reachability of
+/// the server. Without a configured server the app counts as offline.
+fn watch_connection(window: &AppWindow, server_url: Option<String>) {
+    const INTERVAL: Duration = Duration::from_secs(10);
+    const TIMEOUT: Duration = Duration::from_secs(3);
+
+    let Some(server_url) = server_url else { return };
+    let weak = window.as_weak();
+    thread::spawn(move || {
+        loop {
+            let online = connectivity::is_reachable(&server_url, TIMEOUT);
+            // fails once the event loop has ended
+            if weak.upgrade_in_event_loop(move |w| w.set_online(online)).is_err() {
+                return;
+            }
+            thread::sleep(INTERVAL);
+        }
+    });
 }
 
 /// The session granted by the Rolx server once the user has signed in.
@@ -143,7 +169,7 @@ fn sign_in(
 
     // The device flow cannot be bound to an account in advance, so make sure
     // that the person who confirmed the login is the one who was asked for.
-    let email = api::email_from_id_token(&id_token).map_err(|e| e.to_string())?;
+    let email = oidc::email_from_id_token(&id_token).map_err(|e| e.to_string())?;
     if !email.eq_ignore_ascii_case(username) {
         return Err(format!("signed in as {email}, but {username} was expected"));
     }

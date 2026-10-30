@@ -5608,13 +5608,15 @@ dependencies = [
 name = "tracker"
 version = "0.1.0"
 dependencies = [
- "api",
  "argon2",
+ "base64",
  "qrcode",
  "serde",
+ "serde_json",
  "slint",
  "slint-build",
  "toml",
+ "ureq",
 ]
 
 [[package]]

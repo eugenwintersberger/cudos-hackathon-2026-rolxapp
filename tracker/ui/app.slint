@@ -5,6 +5,8 @@ export component AppWindow inherits Window {
     preferred-width: 800px;
     preferred-height: 480px;
 
+    // Whether the Rolx server can be reached.
+    in property <bool> online;
     in property <bool> admin-configured;
     // Returns true if the password is the administrator password.
     callback verify-admin-password(string) -> bool;
@@ -33,11 +35,13 @@ export component AppWindow inherits Window {
         }
     }
 
-    VerticalLayout {
+    HorizontalLayout {
         padding: 12px;
+        spacing: 12px;
 
-        HorizontalLayout {
-            alignment: end;
+        // Both buttons together span the full height.
+        VerticalLayout {
+            width: 160px;
             spacing: 8px;
             Button {
                 text: "Tracking";
@@ -58,6 +62,7 @@ export component AppWindow inherits Window {
         }
 
         VerticalLayout {
+            horizontal-stretch: 1;
             alignment: center;
             spacing: 12px;
 
@@ -72,6 +77,12 @@ export component AppWindow inherits Window {
                 font-size: 20px;
                 horizontal-alignment: center;
             }
+        }
+
+        // Status column; the indicators are drawn at the end of this file
+        // so that dialogs do not cover them.
+        Rectangle {
+            width: 120px;
         }
     }
 
@@ -262,6 +273,48 @@ export component AppWindow inherits Window {
                         }
                     }
                 }
+            }
+        }
+    }
+    // Connection status; declared last so that it stays above dialogs.
+    Rectangle {
+        // top of the status column on the right
+        x: root.width - 12px - self.width;
+        y: 12px;
+        width: 110px;
+        height: 32px;
+
+        HorizontalLayout {
+            spacing: 6px;
+            alignment: start;
+
+            Rectangle {
+                width: 22px;
+                // three signal bars, crossed out while offline
+                for bar in 3: Rectangle {
+                    x: bar * 7px;
+                    y: parent.height - self.height - 6px;
+                    width: 5px;
+                    height: 6px + bar * 5px;
+                    border-radius: 1px;
+                    background: root.online ? #3fb950 : #6e7681;
+                }
+                if !root.online: Path {
+                    x: 0px;
+                    y: 6px;
+                    width: 22px;
+                    height: 20px;
+                    viewbox-width: 22;
+                    viewbox-height: 20;
+                    commands: "M 0 20 L 22 0";
+                    stroke: #f85149;
+                    stroke-width: 2px;
+                }
+            }
+            Text {
+                text: root.online ? "Online" : "Offline";
+                color: root.online ? #3fb950 : #f85149;
+                vertical-alignment: center;
             }
         }
     }
