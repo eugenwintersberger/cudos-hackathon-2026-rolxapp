@@ -7,7 +7,8 @@ Simple Rust app for time tracking with rolx
 |---------------|---------|----------------------------------------------------------------|
 | `tracker`     | lib+bin | The application. Slint UI; the library is reused by the board build. |
 | `api`         | lib     | API library used by `tracker`.                                 |
-| `device_flow` | bin     | Device flow tool.                                              |
+| `device_flow` | lib     | Rolx sign-in (login, logout, whoami, config).                  |
+| `device_flow_cli` | bin | `rolxapp` test executable for `device_flow`.                   |
 
 ## Building
 
