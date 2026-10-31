@@ -8,7 +8,7 @@ not obvious from the code.
 
 - `tracker`: lib + desktop bin, the application with the Slint UI.
 - `device_flow`: lib (from teammates), Google device/native flow and Rolx sign-in. `device_flow_cli` is its test binary.
-- `api`: lib, progenitor-generated Rolx client from the OpenAPI spec (`Client::with_token`). Not used by `tracker` yet.
+- `api`: lib, progenitor-generated Rolx client from the OpenAPI spec (`Client::with_token`). Used by `tracker` (module `rolx`) and `device_flow_cli`.
 
 ### tracker
 
@@ -17,10 +17,14 @@ not obvious from the code.
   - `config`: `config.toml` from `/etc/rolx/tracker` first, then `$HOME/.config/rolx/tracker`. Argon2 admin password hash (`tracker --hash-password`), server and device client settings, WLAN and log settings.
   - `connectivity`: TCP check of the server every 10 s, drives the online indicator.
   - `login`: wraps `device_flow` (in-memory `SessionStore`, tokio runtime per login thread, cancel by dropping the pending login, e-mail must match the typed user name).
+  - `rolx`: activities (`GET /api/v1/Activity/suitable/{userId}/{date}` plus `GET /api/v1/activity/favourite`, merged by `merge()`: dedup by id, favourites only when open on that day, sorted by name, favourites marked with `★` in the UI label) and work records (`GET /api/v1/WorkRecord/...`) through the `api` client; blocking, so call it from a thread. Rolx counts **seconds**: `RecordEntry.duration` is the length, `begin` the seconds since midnight (`Pause` must be null when `begin` is set, entries with `duration` 0 are dropped). The record range is **half-open** (`begin <= date < end`): asking for `{date}..{date}` yields nothing, and since the PUT replaces the day's entries that would drop them — the tracker uses `day_range()` = `{date}..{date+1}`. `dayType`/`dayName`/`nominalWorkTime` are not stored; the server rebuilds them from the user calendar, and `PUT` creates a missing day. The update answers `204 No Content` although the spec declares only `200`, so the client accepts any 2xx (`stored()`).
+  - `work`: the start time of the running session (RFC 3339 text file, atomic write, mode 600, in-memory fallback without a path).
   - `wlan`: writes a managed block (`# BEGIN/END rolx-tracker`, hex SSID, derived PSK) to `/etc/wpa_supplicant.conf`, restarts with `/etc/init.d/S40network restart`. Only active with `linuxkms`.
   - `logging`: `tracing` to `/var/log/rolx-tracker.log`, 20 MB rotation, 10 files, stderr fallback.
-- UI (`tracker/ui/app.slint`): left column with Tracking/Settings buttons filling the height, centre content, right status column. The network indicator is drawn last so dialogs do not cover it. Dialogs are overlays in the single window (KMS has no popups). Settings needs the admin password; the WLAN section shows only with `linuxkms`.
-- The Tracking dialog after login is an empty placeholder; the session is only kept in memory.
+- UI (`tracker/ui/app.slint`): left column with Sign in/Settings buttons filling the height, centre content, right status column. The network indicator is drawn last so dialogs do not cover it. Dialogs are overlays in the single window (KMS has no popups). Settings needs the admin password; the WLAN section shows only with `linuxkms`.
+- The centre is the working screen: Start work / Stop work (local timestamp) and, after a stop, the activity list (`StandardListView`) plus Save. The sign-in dialog only holds the device flow.
+- Keyboard: Tab/Shift-Tab/Enter/Escape work through `i-slint-core`'s focus traversal, so every interactive widget stays a std-widget; the widgets behind an open dialog get `enabled: root.dialog == "none"` so the focus cannot move out of the dialog (layouts have no `enabled`). Slint has no `%` operator (`Math.mod`) and `/` yields a float.
+- The session is only kept in memory; the running work session is in `work_session_path`.
 
 ## Rolx server and Google sign-in
 
