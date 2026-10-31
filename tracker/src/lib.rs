@@ -5,9 +5,8 @@
 
 pub mod config;
 pub mod connectivity;
+pub mod login;
 pub mod logging;
-pub mod oidc;
-pub mod rolx;
 pub mod wlan;
 
 use std::{
@@ -15,18 +14,14 @@ use std::{
     error::Error,
     path::Path,
     rc::Rc,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::Arc,
     thread,
     time::Duration,
 };
 
 use config::{Config, LoginConfig};
-use tracing::{debug, error, info, warn};
-use oidc::{DeviceAuthorization, DeviceFlowClient};
-use rolx::{Approval, RolxClient};
+use login::{Cancel, MemorySessionStore};
+use tracing::{error, info, warn};
 
 slint::include_modules!();
 
@@ -150,40 +145,36 @@ fn setup_wlan(window: &AppWindow, config: &Config) {
     });
 }
 
-/// The session granted by the Rolx server once the user has signed in.
-type Session = Arc<Mutex<Option<Approval>>>;
-
 /// Connect the sign-in callbacks of the window to the device flow.
 fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
     let Some(login) = login else { return };
-    let device_flow = Arc::new(DeviceFlowClient::new(login.client_id, login.client_secret));
-    let rolx = Arc::new(RolxClient::new(login.server_url));
-    let session = Session::default();
-    // Cancel flag of the attempt in progress, if any.
-    let current: Rc<RefCell<Option<Arc<AtomicBool>>>> = Rc::default();
+    let app_config = Arc::new(login::app_config(&login));
+    // The session granted by the Rolx server once the user has signed in.
+    let store = Arc::new(MemorySessionStore::default());
+    // The attempt in progress, if any.
+    let current: Rc<RefCell<Option<Arc<Cancel>>>> = Rc::default();
 
     window.on_start_login({
         let weak = window.as_weak();
         let current = current.clone();
         move |username| {
-            let cancel = Arc::new(AtomicBool::new(false));
+            let cancel = Arc::new(Cancel::default());
             if let Some(previous) = current.borrow_mut().replace(cancel.clone()) {
-                previous.store(true, Ordering::Relaxed);
+                previous.cancel();
             }
             let Some(window) = weak.upgrade() else { return };
             window.set_auth_state("starting".into());
             info!(username = %username, "starting the device flow login");
 
             let weak = weak.clone();
-            let device_flow = device_flow.clone();
-            let rolx = rolx.clone();
-            let session = session.clone();
+            let app_config = app_config.clone();
+            let store = store.clone();
             let username = username.trim().to_owned();
             thread::spawn(move || {
-                let show_code = |authorization: &DeviceAuthorization| {
-                    let url = authorization.verification_url.clone();
-                    let code = authorization.user_code.clone();
-                    let qr = qr_code(&authorization.complete_url());
+                let show_code = |prompt: &device_flow::DeviceCodePrompt| {
+                    let url = prompt.verification_uri.clone();
+                    let code = prompt.user_code.clone();
+                    let qr = qr_code(&login::complete_url(prompt));
                     let _ = weak.upgrade_in_event_loop(move |w| {
                         w.set_verification_url(url.into());
                         w.set_user_code(code.into());
@@ -193,8 +184,8 @@ fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
                         w.set_auth_state("waiting".into());
                     });
                 };
-                let result = sign_in(&device_flow, &rolx, &username, &cancel, show_code);
-                if cancel.load(Ordering::Relaxed) {
+                let result = login::sign_in(&app_config, &store, &username, &cancel, show_code);
+                if cancel.is_cancelled() {
                     info!("login cancelled");
                     return;
                 }
@@ -203,10 +194,7 @@ fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
                     Err(e) => warn!("sign-in failed: {e}"),
                 }
                 let _ = weak.upgrade_in_event_loop(move |w| match result {
-                    Ok(approval) => {
-                        *session.lock().unwrap() = Some(approval);
-                        w.set_auth_state("signed-in".into());
-                    }
+                    Ok(_) => w.set_auth_state("signed-in".into()),
                     Err(e) => {
                         w.set_auth_error(e.into());
                         w.set_auth_state("failed".into());
@@ -218,34 +206,9 @@ fn setup_login(window: &AppWindow, login: Option<LoginConfig<'_>>) {
 
     window.on_cancel_login(move || {
         if let Some(cancel) = current.borrow_mut().take() {
-            cancel.store(true, Ordering::Relaxed);
+            cancel.cancel();
         }
     });
-}
-
-/// Run the device flow for `username` and exchange the result for a session.
-fn sign_in(
-    device_flow: &DeviceFlowClient,
-    rolx: &RolxClient,
-    username: &str,
-    cancel: &AtomicBool,
-    show_code: impl FnOnce(&DeviceAuthorization),
-) -> Result<Approval, String> {
-    let authorization = device_flow.start().map_err(|e| e.to_string())?;
-    debug!(expires_in = authorization.expires_in, "device code issued");
-    show_code(&authorization);
-    let id_token = device_flow
-        .wait_for_id_token(&authorization, cancel)
-        .map_err(|e| e.to_string())?;
-
-    // The device flow cannot be bound to an account in advance, so make sure
-    // that the person who confirmed the login is the one who was asked for.
-    let email = oidc::email_from_id_token(&id_token).map_err(|e| e.to_string())?;
-    if !email.eq_ignore_ascii_case(username) {
-        return Err(format!("signed in as {email}, but {username} was expected"));
-    }
-    debug!("exchanging the ID token at the Rolx server");
-    rolx.sign_in(&id_token).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

@@ -16,19 +16,18 @@ required-features = ["desktop"]
 
 [dependencies]
 argon2 = "0.6.0"
-base64 = "0.23.1"
+device_flow = { version = "0.1.0", path = "../device_flow", default-features = false }
 file-rotate = "0.8.0"
 pbkdf2 = "0.13.0"
 qrcode = { version = "0.14.1", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.154"
 sha1 = "0.11.0"
 slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2"] }
+tokio = { version = "1.54.1", features = ["rt", "macros", "sync"] }
 toml = "1.1.8"
 tracing = "0.1.44"
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-ureq = { version = "3.5.0", features = ["json"] }
 
 [build-dependencies]
 slint-build = "1.18.1"
