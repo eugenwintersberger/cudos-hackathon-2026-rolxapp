@@ -2,6 +2,7 @@ mod cli;
 mod config_list;
 mod logging;
 mod prompt;
+mod ui;
 
 use clap::Parser;
 use cli::{Cli, Command, ConfigCommand, LoginFlow};
@@ -31,10 +32,14 @@ async fn run() -> anyhow::Result<()> {
                     }
                     pending.finish(&store).await?
                 }
-                Some(LoginFlow::Device) => {
+                Some(LoginFlow::Device { ui }) => {
                     let pending = device_flow::login_code(&config).await?;
                     println!("{}", prompt::format_device_prompt(pending.prompt()));
-                    pending.finish(&store).await?
+                    if ui {
+                        ui::login_with_window(pending, store).await?
+                    } else {
+                        pending.finish(&store).await?
+                    }
                 }
             };
             println!(

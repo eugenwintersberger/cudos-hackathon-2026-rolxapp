@@ -1,0 +1,87 @@
+// Window shown by `rolxapp login device --ui`: banner on top, sign-in instructions below.
+
+export component LoginWindow inherits Window {
+    in property <string> url;
+    in property <string> code;
+    in property <image> qr;
+    in property <string> status: "Waiting for authorization…";
+
+    title: "Rolx sign-in";
+    background: white;
+    preferred-width: 560px;
+    preferred-height: 630px;
+    min-width: 560px;
+    max-width: 560px;
+    min-height: 630px;
+    max-height: 630px;
+
+    VerticalLayout {
+        // Top half: 560x315 is exactly the 16:9 aspect ratio of the banner.
+        Image {
+            source: @image-url("../resources/banner.png");
+            image-fit: contain;
+            vertical-stretch: 1;
+        }
+
+        // Bottom half.
+        VerticalLayout {
+            vertical-stretch: 1;
+            padding: 20px;
+            spacing: 12px;
+
+            HorizontalLayout {
+                vertical-stretch: 1;
+                spacing: 24px;
+
+                Image {
+                    source: root.qr;
+                    width: 200px;
+                    height: 200px;
+                    image-rendering: pixelated;
+                    image-fit: contain;
+                }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 8px;
+                    alignment: center;
+
+                    Text {
+                        text: "Scan the QR code or visit";
+                        color: #555555;
+                        font-size: 14px;
+                    }
+
+                    Text {
+                        text: root.url;
+                        color: #1a1a1a;
+                        font-size: 14px;
+                        wrap: word-wrap;
+                    }
+
+                    Text {
+                        text: "and enter the code";
+                        color: #555555;
+                        font-size: 14px;
+                    }
+
+                    Text {
+                        text: root.code;
+                        color: black;
+                        font-size: 32px;
+                        font-weight: 700;
+                        font-family: "monospace";
+                        letter-spacing: 2px;
+                    }
+                }
+            }
+
+            Text {
+                text: root.status;
+                color: #777777;
+                font-size: 12px;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}
