@@ -5,7 +5,11 @@ pub enum LoginFlow {
     /// Native app OAuth 2.0 flow with PKCE (default unless specified)
     NativeApp,
     /// Device authorization flow (for headless/SSH environments)
-    Device,
+    Device {
+        /// Show the URL, code and a QR code in a small window (needs the `ui` feature)
+        #[arg(long)]
+        ui: bool,
+    },
 }
 
 #[derive(Debug, Parser)]

@@ -2,6 +2,8 @@ mod cli;
 mod config_list;
 mod logging;
 mod prompt;
+#[cfg(feature = "ui")]
+mod ui;
 
 use clap::Parser;
 use cli::{Cli, Command, ConfigCommand, LoginFlow};
@@ -31,10 +33,23 @@ async fn run() -> anyhow::Result<()> {
                     }
                     pending.finish(&store).await?
                 }
-                Some(LoginFlow::Device) => {
+                Some(LoginFlow::Device { ui }) => {
                     let pending = device_flow::login_code(&config).await?;
                     println!("{}", prompt::format_device_prompt(pending.prompt()));
-                    pending.finish(&store).await?
+                    if ui {
+                        #[cfg(feature = "ui")]
+                        {
+                            ui::login_with_window(pending, store).await?
+                        }
+                        #[cfg(not(feature = "ui"))]
+                        {
+                            anyhow::bail!(
+                                "--ui needs the `ui` feature: cargo run -p device_flow_cli --features ui -- login device --ui"
+                            )
+                        }
+                    } else {
+                        pending.finish(&store).await?
+                    }
                 }
             };
             println!(
