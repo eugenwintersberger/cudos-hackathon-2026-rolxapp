@@ -6,7 +6,7 @@ pub enum LoginFlow {
     NativeApp,
     /// Device authorization flow (for headless/SSH environments)
     Device {
-        /// Show the URL, code and a QR code in a small window (needs the `ui` feature)
+        /// Show the URL, code and a QR code in a small window
         #[arg(long)]
         ui: bool,
     },

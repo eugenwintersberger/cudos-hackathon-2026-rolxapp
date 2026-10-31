@@ -15,14 +15,11 @@ tokio              = { version = "1", features = ["rt-multi-thread", "macros"] }
 toml               = "1.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-slint              = { version = "1.18", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software"], optional = true }
-qrcode             = { version = "0.14", default-features = false, optional = true }
+slint              = { version = "1.18", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software"] }
+qrcode             = { version = "0.14", default-features = false }
 
 [build-dependencies]
-slint-build        = { version = "1.18", optional = true }
+slint-build        = "1.18"
 
 [features]
-default = []
 uncensored_logs = ["device_flow/uncensored_logs"]
-# Small window with URL, code and QR code for `login device --ui`.
-ui = ["dep:slint", "dep:qrcode", "dep:slint-build"]
