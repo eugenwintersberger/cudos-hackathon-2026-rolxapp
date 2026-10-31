@@ -1,4 +1,4 @@
-import { Button, LineEdit } from "std-widgets.slint";
+import { Button, LineEdit, Palette, StandardListView } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
     title: "Rolx Tracker";
@@ -19,6 +19,26 @@ export component AppWindow inherits Window {
     in property <string> user-code;
     in property <image> qr-code;
     in property <string> auth-error;
+
+    // Work tracking, shown in the centre.
+    // "idle", "running", "loading", "selecting", "saving" or "error"
+    in-out property <string> work-state: "idle";
+    // Seconds since "Start work"; the timer below counts them.
+    in-out property <int> work-elapsed-seconds;
+    // Start of the running session as HH:MM.
+    in property <string> work-started-at;
+    // Minutes recorded on the day so far.
+    in property <int> work-today-seconds;
+    in property <string> work-message;
+    // Activities to choose from after "Stop work".
+    in property <[StandardListViewItem]> activities;
+    in-out property <int> selected-activity-index: -1;
+    callback start-work();
+    callback stop-work();
+    callback save-work();
+    // Back to work: keeps the running session, if there is one.
+    callback cancel-work();
+
     // Whether the WLAN can be configured (boards with wpa_supplicant).
     in property <bool> wlan-available;
     // "idle", "working", "done" or "failed"
@@ -42,32 +62,40 @@ export component AppWindow inherits Window {
         }
     }
 
+    function close-dialog() {
+        if (root.dialog == "tracking") {
+            root.cancel-login();
+        }
+        root.wlan-state = "idle";
+        root.dialog = "none";
+    }
+
+    // Seconds as `1h 5m`, `45m` or `0m`.
+    pure function format-duration(total-seconds: int) -> string {
+        return floor(total-seconds / 3600) > 0
+            ? "\{floor(total-seconds / 3600)}h \{floor(Math.mod(total-seconds, 3600) / 60)}m"
+            : "\{floor(total-seconds / 60)}m";
+    }
+
+    Timer {
+        interval: 1s;
+        running: root.work-state == "running";
+        triggered => { root.work-elapsed-seconds += 1; }
+    }
+
+    // Every widget behind a dialog is disabled while one is open, so that the
+    // keyboard focus stays inside the dialog.
     HorizontalLayout {
         padding: 12px;
         spacing: 12px;
 
-        // Both buttons together span the full height.
-        VerticalLayout {
-            width: 160px;
-            spacing: 8px;
-            Button {
-                text: "Tracking";
-                clicked => {
-                    if (root.auth-state == "failed") {
-                        root.auth-state = "idle";
-                    }
-                    root.dialog = "tracking";
-                }
-            }
-            Button {
-                text: "Settings";
-                clicked => {
-                    root.login-failed = false;
-                    root.dialog = "login";
-                }
-            }
+        // Mirrors the settings column, so that the centre stays centred in the
+        // window.
+        Rectangle {
+            width: 120px;
         }
 
+        // The centre is the working screen: start and stop the work here.
         VerticalLayout {
             horizontal-stretch: 1;
             alignment: center;
@@ -79,17 +107,189 @@ export component AppWindow inherits Window {
                 horizontal-alignment: center;
             }
 
-            Text {
-                text: "Hello, World!";
-                font-size: 20px;
+            if !root.login-configured: Text {
+                text: "Server and login are not configured.";
+                color: #ff6b6b;
+                wrap: word-wrap;
                 horizontal-alignment: center;
+            }
+
+            if root.login-configured && root.auth-state != "signed-in": VerticalLayout {
+                spacing: 12px;
+                alignment: center;
+
+                Text {
+                    text: "Sign in to track your work.";
+                    color: Palette.foreground;
+                    horizontal-alignment: center;
+                }
+                Button {
+                    text: "Sign in";
+                    primary: true;
+                    min-width: 200px;
+                    enabled: root.dialog == "none";
+                    clicked => {
+                        if (root.auth-state == "failed") {
+                            root.auth-state = "idle";
+                        }
+                        root.dialog = "tracking";
+                    }
+                }
+            }
+
+            if root.login-configured && root.auth-state == "signed-in": VerticalLayout {
+                spacing: 12px;
+                alignment: center;
+
+                if root.work-state == "idle": VerticalLayout {
+                    spacing: 12px;
+                    alignment: center;
+
+                    Text {
+                        text: "Today: \{root.format-duration(root.work-today-seconds)}";
+                        color: Palette.foreground;
+                        horizontal-alignment: center;
+                    }
+                    Button {
+                        text: "Start work";
+                        primary: true;
+                        min-width: 200px;
+                        enabled: root.dialog == "none";
+                        init => { self.focus(); }
+                        clicked => { root.start-work(); }
+                    }
+                }
+
+                if root.work-state == "running": VerticalLayout {
+                    spacing: 8px;
+                    alignment: center;
+
+                    Text {
+                        text: "Working since \{root.work-started-at}";
+                        color: Palette.foreground;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: root.format-duration(root.work-elapsed-seconds);
+                        font-size: 36px;
+                        font-weight: 700;
+                        color: Palette.foreground;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: "Today: \{root.format-duration(root.work-today-seconds)}";
+                        color: Palette.foreground;
+                        horizontal-alignment: center;
+                    }
+                    Button {
+                        text: "Stop work";
+                        primary: true;
+                        min-width: 200px;
+                        enabled: root.dialog == "none";
+                        init => { self.focus(); }
+                        clicked => { root.stop-work(); }
+                    }
+                }
+
+                if root.work-state == "loading": Text {
+                    text: "Fetching activities and today's records ...";
+                    color: Palette.foreground;
+                    horizontal-alignment: center;
+                }
+
+                if root.work-state == "selecting": VerticalLayout {
+                    spacing: 8px;
+
+                    Text {
+                        text: "Select an activity for \{root.format-duration(root.work-elapsed-seconds)}";
+                        color: Palette.foreground;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: "Today so far: \{root.format-duration(root.work-today-seconds)}";
+                        color: Palette.foreground;
+                        horizontal-alignment: center;
+                    }
+                    StandardListView {
+                        model: root.activities;
+                        current-item <=> root.selected-activity-index;
+                        horizontal-stretch: 1;
+                        height: 150px;
+                        enabled: root.dialog == "none";
+                        init => { self.focus(); }
+                    }
+                    HorizontalLayout {
+                        alignment: center;
+                        spacing: 8px;
+
+                        Button {
+                            text: "Keep working";
+                            enabled: root.dialog == "none";
+                            clicked => { root.cancel-work(); }
+                        }
+                        Button {
+                            text: "Save";
+                            primary: true;
+                            enabled: root.dialog == "none" && root.selected-activity-index >= 0;
+                            clicked => { root.save-work(); }
+                        }
+                    }
+                }
+
+                if root.work-state == "saving": Text {
+                    text: "Saving ...";
+                    color: Palette.foreground;
+                    horizontal-alignment: center;
+                }
+
+                if root.work-state == "error": VerticalLayout {
+                    spacing: 12px;
+                    alignment: center;
+
+                    Text {
+                        text: root.work-message;
+                        color: #ff6b6b;
+                        wrap: word-wrap;
+                        horizontal-alignment: center;
+                    }
+                    Button {
+                        text: "Back";
+                        enabled: root.dialog == "none";
+                        init => { self.focus(); }
+                        clicked => { root.cancel-work(); }
+                    }
+                }
+
+                if root.work-state == "idle" && root.work-message != "": Text {
+                    text: root.work-message;
+                    color: #7ee787;
+                    wrap: word-wrap;
+                    horizontal-alignment: center;
+                }
             }
         }
 
-        // Status column; the indicators are drawn at the end of this file
-        // so that dialogs do not cover them.
-        Rectangle {
+        // The settings button sits at the bottom right; the online indicator
+        // is drawn above this column at the top right.
+        VerticalLayout {
             width: 120px;
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+            HorizontalLayout {
+                alignment: end;
+
+                Button {
+                    text: "Settings";
+                    width: 90px;
+                    enabled: root.dialog == "none";
+                    clicked => {
+                        root.login-failed = false;
+                        root.dialog = "login";
+                    }
+                }
+            }
         }
     }
 
@@ -99,82 +299,51 @@ export component AppWindow inherits Window {
         background: #000000a0;
         TouchArea { }
 
-        Rectangle {
+        // Keys of the focused child bubble up to this scope, so Escape closes
+        // the dialog from anywhere in it.
+        dialog-scope := FocusScope {
             width: min(parent.width - 24px, 420px);
             height: self.preferred-height;
-            background: #2b2b2b;
-            border-radius: 8px;
+            // The scope only collects the keys of its children; it is not a
+            // stop of its own in the tab traversal.
+            focus-on-tab-navigation: false;
 
-            VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
-
-                if root.dialog == "login": VerticalLayout {
-                    spacing: 12px;
-                    Text {
-                        text: "Administrator password";
-                        font-size: 20px;
-                        color: white;
-                    }
-                    password := LineEdit {
-                        input-type: InputType.password;
-                        placeholder-text: "Password";
-                        enabled: root.admin-configured;
-                        init => { self.focus(); }
-                        accepted => { root.try-unlock(self.text); }
-                    }
-                    Text {
-                        visible: !root.admin-configured || root.login-failed;
-                        text: root.admin-configured ? "Wrong password" : "No administrator password configured";
-                        color: #ff6b6b;
-                    }
-                    HorizontalLayout {
-                        alignment: end;
-                        spacing: 8px;
-                        Button {
-                            text: "Cancel";
-                            clicked => { root.dialog = "none"; }
-                        }
-                        Button {
-                            text: "Unlock";
-                            primary: true;
-                            enabled: root.admin-configured;
-                            clicked => { root.try-unlock(password.text); }
-                        }
-                    }
+            key-pressed(event) => {
+                if (event.text == Key.Escape) {
+                    root.close-dialog();
+                    return accept;
                 }
+                return reject;
+            }
 
-                if root.dialog == "tracking": VerticalLayout {
+            Rectangle {
+                width: parent.width;
+                height: parent.height;
+                background: #2b2b2b;
+                border-radius: 8px;
+
+                VerticalLayout {
+                    padding: 16px;
                     spacing: 12px;
-                    Text {
-                        text: "Tracking";
-                        font-size: 20px;
-                        color: white;
-                    }
 
-                    if !root.login-configured: Text {
-                        text: "Server and login are not configured.";
-                        color: #ff6b6b;
-                        wrap: word-wrap;
-                    }
-
-                    if root.login-configured && (root.auth-state == "idle" || root.auth-state == "failed"): VerticalLayout {
+                    if root.dialog == "login": VerticalLayout {
                         spacing: 12px;
                         Text {
-                            text: "Sign in with your user name (e-mail address).";
-                            color: #c0c0c0;
-                            wrap: word-wrap;
+                            text: "Administrator password";
+                            font-size: 20px;
+                            color: white;
                         }
-                        user-name := LineEdit {
-                            input-type: InputType.text;
-                            placeholder-text: "name@example.org";
+                        password := LineEdit {
+                            input-type: InputType.password;
+                            placeholder-text: "Password";
+                            enabled: root.admin-configured;
                             init => { self.focus(); }
-                            accepted => { root.start-login(self.text); }
+                            accepted => { root.try-unlock(self.text); }
                         }
-                        if root.auth-state == "failed": Text {
-                            text: root.auth-error;
+                        Text {
+                            visible: !root.admin-configured || root.login-failed;
+                            text: root.admin-configured ? "Wrong password" : "No administrator password configured";
                             color: #ff6b6b;
-                            wrap: word-wrap;
                         }
                         HorizontalLayout {
                             alignment: end;
@@ -184,143 +353,192 @@ export component AppWindow inherits Window {
                                 clicked => { root.dialog = "none"; }
                             }
                             Button {
-                                text: "Sign in";
+                                text: "Unlock";
                                 primary: true;
-                                enabled: user-name.text != "";
-                                clicked => { root.start-login(user-name.text); }
+                                enabled: root.admin-configured;
+                                clicked => { root.try-unlock(password.text); }
                             }
                         }
                     }
 
-                    if root.auth-state == "starting": Text {
-                        text: "Contacting login service ...";
-                        color: #c0c0c0;
-                    }
-
-                    if root.auth-state == "waiting": VerticalLayout {
+                    if root.dialog == "tracking": VerticalLayout {
                         spacing: 12px;
                         Text {
-                            text: "Scan the QR code, or open this link and enter the code:";
-                            color: #c0c0c0;
+                            text: "Tracking";
+                            font-size: 20px;
+                            color: white;
+                        }
+
+                        if !root.login-configured: Text {
+                            text: "Server and login are not configured.";
+                            color: #ff6b6b;
                             wrap: word-wrap;
                         }
-                        HorizontalLayout {
-                            spacing: 16px;
-                            Image {
-                                source: root.qr-code;
-                                width: 160px;
-                                height: 160px;
-                                image-rendering: pixelated;
+
+                        if root.login-configured && (root.auth-state == "idle" || root.auth-state == "failed"): VerticalLayout {
+                            spacing: 12px;
+                            Text {
+                                text: "Sign in with your user name (e-mail address).";
+                                color: #c0c0c0;
+                                wrap: word-wrap;
                             }
-                            VerticalLayout {
-                                alignment: center;
+                            user-name := LineEdit {
+                                input-type: InputType.text;
+                                placeholder-text: "name@example.org";
+                                init => { self.focus(); }
+                                accepted => { root.start-login(self.text); }
+                            }
+                            if root.auth-state == "failed": Text {
+                                text: root.auth-error;
+                                color: #ff6b6b;
+                                wrap: word-wrap;
+                            }
+                            HorizontalLayout {
+                                alignment: end;
                                 spacing: 8px;
-                                Text {
-                                    text: root.verification-url;
-                                    color: #6cb6ff;
-                                    font-size: 16px;
-                                    wrap: word-wrap;
+                                Button {
+                                    text: "Cancel";
+                                    clicked => { root.dialog = "none"; }
                                 }
-                                Text {
-                                    text: root.user-code;
-                                    color: white;
-                                    font-size: 28px;
-                                    font-weight: 700;
+                                Button {
+                                    text: "Sign in";
+                                    primary: true;
+                                    enabled: user-name.text != "";
+                                    clicked => { root.start-login(user-name.text); }
                                 }
                             }
                         }
-                        Text {
-                            text: "Waiting for confirmation ...";
+
+                        if root.auth-state == "starting": Text {
+                            text: "Contacting login service ...";
                             color: #c0c0c0;
                         }
-                        HorizontalLayout {
-                            alignment: end;
-                            Button {
-                                text: "Cancel";
-                                clicked => {
-                                    root.cancel-login();
-                                    root.dialog = "none";
+
+                        if root.auth-state == "waiting": VerticalLayout {
+                            spacing: 12px;
+                            Text {
+                                text: "Scan the QR code, or open this link and enter the code:";
+                                color: #c0c0c0;
+                                wrap: word-wrap;
+                            }
+                            HorizontalLayout {
+                                spacing: 16px;
+                                Image {
+                                    source: root.qr-code;
+                                    width: 160px;
+                                    height: 160px;
+                                    image-rendering: pixelated;
+                                }
+                                VerticalLayout {
+                                    alignment: center;
+                                    spacing: 8px;
+                                    Text {
+                                        text: root.verification-url;
+                                        color: #6cb6ff;
+                                        font-size: 16px;
+                                        wrap: word-wrap;
+                                    }
+                                    Text {
+                                        text: root.user-code;
+                                        color: white;
+                                        font-size: 28px;
+                                        font-weight: 700;
+                                    }
+                                }
+                            }
+                            Text {
+                                text: "Waiting for confirmation ...";
+                                color: #c0c0c0;
+                            }
+                            HorizontalLayout {
+                                alignment: end;
+                                Button {
+                                    text: "Cancel";
+                                    clicked => {
+                                        root.cancel-login();
+                                        root.dialog = "none";
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.auth-state == "signed-in": VerticalLayout {
+                            spacing: 12px;
+                            Text {
+                                text: "Signed in.";
+                                color: #7ee787;
+                            }
+                            HorizontalLayout {
+                                alignment: end;
+                                Button {
+                                    text: "Close";
+                                    clicked => { root.dialog = "none"; }
                                 }
                             }
                         }
                     }
 
-                    if root.auth-state == "signed-in": VerticalLayout {
+                    if root.dialog == "config": VerticalLayout {
                         spacing: 12px;
                         Text {
-                            text: "Signed in.";
-                            color: #7ee787;
+                            text: "Configuration";
+                            font-size: 20px;
+                            color: white;
+                        }
+                        if !root.wlan-available: Text {
+                            text: "No settings available yet.";
+                            color: #c0c0c0;
+                        }
+                        if root.wlan-available: VerticalLayout {
+                            spacing: 8px;
+                            Text {
+                                text: "WLAN";
+                                color: white;
+                                font-weight: 700;
+                            }
+                            ssid := LineEdit {
+                                placeholder-text: "Network name (SSID)";
+                                enabled: root.wlan-state != "working";
+                                edited => { root.wlan-state = "idle"; }
+                            }
+                            passphrase := LineEdit {
+                                input-type: InputType.password;
+                                placeholder-text: "Passphrase";
+                                enabled: root.wlan-state != "working";
+                                edited => { root.wlan-state = "idle"; }
+                                accepted => { root.apply-wlan(ssid.text, self.text); }
+                            }
+                            if root.wlan-state == "working": Text {
+                                text: "Updating the network ...";
+                                color: #c0c0c0;
+                            }
+                            if root.wlan-state == "done": Text {
+                                text: "Network configuration updated.";
+                                color: #7ee787;
+                            }
+                            if root.wlan-state == "failed": Text {
+                                text: root.wlan-message;
+                                color: #ff6b6b;
+                                wrap: word-wrap;
+                            }
+                            HorizontalLayout {
+                                alignment: end;
+                                Button {
+                                    text: "Apply";
+                                    primary: true;
+                                    enabled: ssid.text != "" && passphrase.text != "" && root.wlan-state != "working";
+                                    clicked => { root.apply-wlan(ssid.text, passphrase.text); }
+                                }
+                            }
                         }
                         HorizontalLayout {
                             alignment: end;
                             Button {
                                 text: "Close";
-                                clicked => { root.dialog = "none"; }
-                            }
-                        }
-                    }
-                }
-
-                if root.dialog == "config": VerticalLayout {
-                    spacing: 12px;
-                    Text {
-                        text: "Configuration";
-                        font-size: 20px;
-                        color: white;
-                    }
-                    if !root.wlan-available: Text {
-                        text: "No settings available yet.";
-                        color: #c0c0c0;
-                    }
-                    if root.wlan-available: VerticalLayout {
-                        spacing: 8px;
-                        Text {
-                            text: "WLAN";
-                            color: white;
-                            font-weight: 700;
-                        }
-                        ssid := LineEdit {
-                            placeholder-text: "Network name (SSID)";
-                            enabled: root.wlan-state != "working";
-                            edited => { root.wlan-state = "idle"; }
-                        }
-                        passphrase := LineEdit {
-                            input-type: InputType.password;
-                            placeholder-text: "Passphrase";
-                            enabled: root.wlan-state != "working";
-                            edited => { root.wlan-state = "idle"; }
-                            accepted => { root.apply-wlan(ssid.text, self.text); }
-                        }
-                        if root.wlan-state == "working": Text {
-                            text: "Updating the network ...";
-                            color: #c0c0c0;
-                        }
-                        if root.wlan-state == "done": Text {
-                            text: "Network configuration updated.";
-                            color: #7ee787;
-                        }
-                        if root.wlan-state == "failed": Text {
-                            text: root.wlan-message;
-                            color: #ff6b6b;
-                            wrap: word-wrap;
-                        }
-                        HorizontalLayout {
-                            alignment: end;
-                            Button {
-                                text: "Apply";
-                                primary: true;
-                                enabled: ssid.text != "" && passphrase.text != "" && root.wlan-state != "working";
-                                clicked => { root.apply-wlan(ssid.text, passphrase.text); }
-                            }
-                        }
-                    }
-                    HorizontalLayout {
-                        alignment: end;
-                        Button {
-                            text: "Close";
-                            clicked => {
-                                root.wlan-state = "idle";
-                                root.dialog = "none";
+                                clicked => {
+                                    root.wlan-state = "idle";
+                                    root.dialog = "none";
+                                }
                             }
                         }
                     }
@@ -328,6 +546,7 @@ export component AppWindow inherits Window {
             }
         }
     }
+
     // Connection status; declared last so that it stays above dialogs.
     Rectangle {
         // top of the status column on the right

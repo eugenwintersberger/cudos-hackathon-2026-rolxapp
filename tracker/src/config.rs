@@ -31,6 +31,9 @@ pub struct Config {
     pub device_client_secret: Option<String>,
     /// Directory of the log files (default `/var/log`).
     pub log_dir: Option<String>,
+    /// File that holds the start timestamp of the running work session
+    /// (default `$HOME/.config/rolx/tracker/work-session.json`).
+    pub work_session_path: Option<String>,
     /// wpa_supplicant configuration that the WLAN dialog updates
     /// (default `/etc/wpa_supplicant.conf`).
     pub wlan_config_path: Option<String>,
@@ -42,6 +45,8 @@ pub struct Config {
 
 const DEFAULT_LOG_DIR: &str = "/var/log";
 const DEFAULT_WLAN_CONFIG_PATH: &str = "/etc/wpa_supplicant.conf";
+const USER_DIR: &str = ".config/rolx/tracker";
+const WORK_SESSION_FILE: &str = "work-session.json";
 
 /// Everything needed to sign in at the Rolx service.
 pub struct LoginConfig<'a> {
@@ -59,6 +64,7 @@ impl fmt::Debug for Config {
             .field("device_client_id", &self.device_client_id)
             .field("device_client_secret", &self.device_client_secret.as_ref().map(|_| "<set>"))
             .field("log_dir", &self.log_dir)
+            .field("work_session_path", &self.work_session_path)
             .field("wlan_config_path", &self.wlan_config_path)
             .field("wlan_restart_command", &self.wlan_restart_command)
             .finish()
@@ -126,6 +132,16 @@ impl Config {
 
     pub fn log_dir(&self) -> &str {
         self.log_dir.as_deref().unwrap_or(DEFAULT_LOG_DIR)
+    }
+
+    /// Where the running work session is stored. `None` if there is no home
+    /// directory to write to; the session then only lives in memory.
+    pub fn work_session_path(&self) -> Option<PathBuf> {
+        if let Some(path) = &self.work_session_path {
+            return Some(PathBuf::from(path));
+        }
+        let home = env::var_os("HOME")?;
+        Some(Path::new(&home).join(USER_DIR).join(WORK_SESSION_FILE))
     }
 
     pub fn wlan_config_path(&self) -> &str {
@@ -217,5 +233,16 @@ mod tests {
     #[test]
     fn unknown_keys_are_errors() {
         assert!(Config::parse("admin_pasword_hash = \"x\"").is_err());
+    }
+
+    #[test]
+    fn work_session_path_defaults_to_the_user_config() {
+        let config = Config::parse("work_session_path = \"/tmp/w.json\"").unwrap();
+        assert_eq!(config.work_session_path(), Some(PathBuf::from("/tmp/w.json")));
+
+        let default = Config::default().work_session_path();
+        if let Some(path) = default {
+            assert!(path.ends_with(".config/rolx/tracker/work-session.json"), "{path:?}");
+        }
     }
 }
