@@ -68,6 +68,7 @@ contains one (a file in `/etc` takes precedence over the user's):
 | `device_client_secret`| OIDC client secret for the device flow login. Keep the file readable only by its user (`chmod 600`). |
 
 | `log_dir`             | Directory of the log files. Default `/var/log`.                |
+| `work_session_path`   | File with the start time of the running work session. Default `$HOME/.config/rolx/tracker/work-session.json`. |
 | `wlan_config_path`    | wpa_supplicant configuration to update. Default `/etc/wpa_supplicant.conf`. |
 | `wlan_restart_command`| Program and arguments that restart the network. Default `["/etc/init.d/S40network", "restart"]`. |
 
@@ -84,13 +85,46 @@ and put the result into the file:
 admin_password_hash = "$argon2id$v=19$m=19456,t=2,p=1$..."
 ```
 
-The **Settings** button in the app asks for this password before it shows the
+The **Settings** button (bottom right) asks for this password before it shows the
 configuration dialog.
 
-The **Tracking** button asks for the user name (e-mail address) and starts an
+The **Sign in** button asks for the user name (e-mail address) and starts an
 OIDC device flow: the app shows a link and a code, the user confirms the login
 in any browser, and the app then signs in at the Rolx service. The account that
 confirmed the login must match the user name that was entered.
+
+## Tracking
+
+Once signed in, the centre of the window is the working screen:
+
+1. **Start work** stores the current time locally and shows a running timer.
+   The session survives a restart; a session that did not start on the current
+   day is dropped at startup.
+2. **Stop work** fetches the activities that the signed-in user can book on
+   that day (`GET /api/v1/Activity/suitable/{userId}/{date}`) together with the
+   favourites (`GET /api/v1/activity/favourite`), and the existing work record
+   of the day. The list is sorted by name; favourites carry a `★` and one that
+   is not open on that day is left out (the server returns them unfiltered, and
+   a closed activity cannot be booked). Rolx takes the record range as
+   half-open, so the tracker asks for
+   `GET /api/v1/WorkRecord/{userId}/range/{date}..{date+1}`.
+3. Choosing an activity and **Save** adds a record entry to that day and stores
+   the whole day with `PUT /api/v1/WorkRecord/{userId}/{date}`. The entries that
+   are already there are kept. Rolx counts **seconds**: `duration` is the length
+   of the work, `begin` the seconds since midnight. Rolx answers the update with
+   `204 No Content` while its API description declares `200`; any 2xx therefore
+   counts as stored. A day the server has no record for yet is created with the
+   new entry. The day type and the nominal work time are not stored by the
+   server; it derives them from the user's calendar, so the tracker does not
+   send them.
+
+The start time is stored in `work_session_path`, by default
+`$HOME/.config/rolx/tracker/work-session.json`. The file contains only that
+timestamp.
+
+The whole app can be used with the keyboard: Tab and Shift-Tab move between the
+controls, Enter or Space activates a button, the arrow keys and Enter choose an
+activity, and Escape closes a dialog.
 
 ## `device_flow` library API
 

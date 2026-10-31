@@ -5411,12 +5411,15 @@ dependencies = [
 name = "tracker"
 version = "0.1.0"
 dependencies = [
+ "api",
  "argon2",
+ "chrono",
  "device_flow",
  "file-rotate",
  "pbkdf2",
  "qrcode",
  "serde",
+ "serde_json",
  "sha1",
  "slint",
  "slint-build",
@@ -5425,6 +5428,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
