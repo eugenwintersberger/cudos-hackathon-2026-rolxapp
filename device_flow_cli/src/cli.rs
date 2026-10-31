@@ -42,6 +42,8 @@ pub enum Command {
     Logout,
     /// Print current user from stored session
     Whoami,
+    /// Fetch all current activities from Rolx and print them as JSON (tests the `api` crate)
+    Activities,
     /// Inspect the config file
     Config {
         #[command(subcommand)]

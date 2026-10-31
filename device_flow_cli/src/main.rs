@@ -1,3 +1,4 @@
+mod activities;
 mod cli;
 mod config_list;
 mod logging;
@@ -57,6 +58,14 @@ async fn run() -> anyhow::Result<()> {
                 "{} {} <{}>",
                 session.user_first_name, session.user_last_name, session.user_email
             );
+        }
+        Command::Activities => {
+            let config = AppConfig::load()?.with_server_override(cli.server);
+            let store = FileSessionStore::default_location()?;
+            let client = activities::authorized_client(&config, &store).await?;
+            let today = chrono::Local::now().date_naive();
+            let list = activities::fetch_activities(&client, today).await?;
+            println!("{}", serde_json::to_string_pretty(&list)?);
         }
         Command::Config { command } => match command {
             ConfigCommand::Ls => {
